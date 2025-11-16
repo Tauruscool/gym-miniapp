@@ -1,0 +1,42 @@
+/* 卡片容器 */
+
+.section { background:#fff; border-radius:16rpx; padding:24rpx; margin:16rpx 20rpx; box-shadow:0 4rpx 16rpx rgba(0,0,0,0.04); }
+
+.section-title { font-size:28rpx; font-weight:600; margin-bottom:16rpx; color:#111; }
+
+.helper { color:#8c8c8c; font-size:24rpx; }
+
+/* 主/次按钮（参照 report 页） */
+
+.btn-primary { background:#29a745; color:#fff; border-radius:12rpx; padding:16rpx 24rpx; }
+
+.btn-secondary { background:#f5f5f5; color:#111; border-radius:12rpx; padding:16rpx 24rpx; }
+
+/* chip */
+
+.chips { display:flex; gap:12rpx; flex-wrap:wrap; }
+
+.chip { padding:8rpx 16rpx; border-radius:20rpx; background:#f6ffed; color:#52c41a; font-size:24rpx; }
+
+.chip--ghost { background:#fafafa; color:#595959; }
+
+/* 列表项 */
+
+.card { background:#fff; border-radius:16rpx; padding:20rpx; margin:12rpx 20rpx; border:1rpx solid #f0f0f0; }
+
+.card-title { font-size:28rpx; font-weight:600; }
+
+.card-sub { font-size:24rpx; color:#666; margin-top:8rpx; }
+
+.tag { padding:4rpx 12rpx; border-radius:12rpx; font-size:22rpx; }
+
+.tag-pending { background:#fffbe6; color:#d48806; }
+
+.tag-confirmed { background:#f6ffed; color:#389e0d; }
+
+.tag-done { background:#e6f7ff; color:#096dd9; }
+
+/* 空态 */
+
+.empty { text-align:center; color:#8c8c8c; padding:40rpx 0; }
+

@@ -1,0 +1,45 @@
+const cloud = require('wx-server-sdk')
+
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
+
+const db = cloud.database()
+
+exports.main = async (event) => {
+  const { OPENID } = cloud.getWXContext()
+  const { reportId } = event || {}
+
+  if (!reportId) {
+    throw new Error('user_get_report: 缺少 reportId')
+  }
+
+  // 1. 当前用户
+  const uRes = await db.collection('users')
+    .where({ openid: OPENID })
+    .field({ userId: true, tenantId: true })
+    .limit(1)
+    .get()
+
+  if (!uRes.data.length) {
+    throw new Error('user_get_report: 未找到用户')
+  }
+
+  const userDoc = uRes.data[0]
+  const uid = userDoc.userId || userDoc._id
+  const tenantId = userDoc.tenantId
+
+  // 2. 只允许拿到"属于自己的报告"
+  const rRes = await db.collection('training_reports')
+    .doc(reportId)
+    .get()
+
+  const report = rRes.data
+
+  if (!report || report.userId !== uid) {
+    throw new Error('user_get_report: 无权限或报告不存在')
+  }
+
+  // 可选：你想的话，可以这里再把 session 信息一并查出来拼上去
+  // 例如：查 sessions 集合，把 title / 时间塞到 report.sessionInfo 里
+
+  return { report }
+}

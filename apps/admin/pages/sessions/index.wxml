@@ -1,0 +1,61 @@
+<!-- apps/admin/pages/sessions/index.wxml -->
+<view class="page">
+  <view class="section">
+    <view class="section-title">课程管理</view>
+    <view class="helper">按学员 / 标题 / 日期查看所有课程</view>
+    <input class="input"
+           placeholder="手机号 / 姓名 / 课程标题"
+           bindinput="onKeyword"
+           value="{{q}}" />
+    <!-- 状态筛选：改为占满一行的四个大按钮 -->
+    <view class="status-row">
+      <button class="status-btn {{status===''?'status-btn--active':''}}"
+              data-status=""
+              bindtap="setStatus">全部</button>
+      <button class="status-btn {{status==='pending'?'status-btn--active':''}}"
+              data-status="pending"
+              bindtap="setStatus">待确认</button>
+      <button class="status-btn {{status==='confirmed'?'status-btn--active':''}}"
+              data-status="confirmed"
+              bindtap="setStatus">已确认</button>
+      <button class="status-btn {{status==='done'?'status-btn--active':''}}"
+              data-status="done"
+              bindtap="setStatus">已完成</button>
+    </view>
+    <view class="date-row">
+      <picker mode="date" value="{{startDate}}" bindchange="onStartDate">
+        <view class="date-chip">开始：{{startDate || '不限'}}</view>
+      </picker>
+      <picker mode="date" value="{{endDate}}" bindchange="onEndDate">
+        <view class="date-chip">结束：{{endDate || '不限'}}</view>
+      </picker>
+    </view>
+    <view class="actions">
+      <button class="btn-secondary" bindtap="fetch" loading="{{loading}}">刷新列表</button>
+      <button class="btn-primary" bindtap="goCreate">创建课程</button>
+    </view>
+  </view>
+  <!-- 课程列表：展示手机号，卡片整体可点击进入详情 -->
+  <block wx:if="{{list.length}}">
+    <view class="card"
+          wx:for="{{list}}"
+          wx:key="_id"
+          bindtap="goDetail"
+          data-id="{{item._id}}"
+          data-title="{{item.title}}"
+          data-status="{{item.status}}"
+          data-start="{{item.startAt}}"
+          data-end="{{item.endAt}}"
+          data-phone="{{item.userPhone}}">
+      <view class="card-header">
+        <view class="card-title">{{item.title || '未命名课程'}}</view>
+        <view class="tag" wx:if="{{item.status==='pending'}}">待确认</view>
+        <view class="tag tag-confirmed" wx:elif="{{item.status==='confirmed'}}">已确认</view>
+        <view class="tag tag-done" wx:elif="{{item.status==='done'}}">已完成</view>
+      </view>
+      <view class="card-sub">{{item.startAt}} ~ {{item.endAt}}</view>
+      <view class="card-sub">学员手机号：{{item.userPhone || '未绑定'}}</view>
+    </view>
+  </block>
+  <view wx:else class="empty">暂无符合条件的课程</view>
+</view>

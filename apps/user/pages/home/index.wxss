@@ -1,0 +1,24 @@
+
+.wrap { padding: 16rpx 24rpx; }
+
+.title { font-size: 34rpx; font-weight: 600; margin: 16rpx 0 24rpx; }
+
+.subtitle { font-size: 28rpx; color: #333; margin: 12rpx 0; }
+
+.card { background: #fff; padding: 24rpx; border-radius: 16rpx; box-shadow: 0 2rpx 12rpx rgba(0,0,0,.04); margin-bottom: 20rpx; }
+
+.item { display:flex; align-items:center; justify-content:space-between; background:#fff; padding:20rpx; border-radius:12rpx; margin-bottom:16rpx; box-shadow:0 2rpx 12rpx rgba(0,0,0,.04); }
+
+.info .name { font-weight: 600; margin-bottom: 6rpx; }
+
+.info .time { color: #666; font-size: 24rpx; }
+
+.ipt { border: 1rpx solid #e5e5e5; padding: 16rpx; border-radius: 12rpx; margin-bottom: 16rpx; }
+
+.btn, .small { background:#07c160; color:#fff; border-radius:12rpx; }
+
+.btn { padding:18rpx 0; }
+
+.small { padding:12rpx 18rpx; font-size:26rpx; }
+
+.tips { color:#888; font-size:24rpx; margin-top:12rpx; }

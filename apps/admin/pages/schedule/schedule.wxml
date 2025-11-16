@@ -1,0 +1,71 @@
+<view class="box">
+
+  <!-- 学员搜索 -->
+  <view class="field">
+    <text class="label">搜索学员</text>
+    <view class="row">
+      <input class="ipt" placeholder="手机号/姓名" bindinput="onSearchInput" value="{{searchInput}}"/>
+      <button class="btn-search" bindtap="searchUsers">搜索</button>
+    </view>
+  </view>
+
+  <!-- 学员列表 -->
+  <view class="user-list" wx:if="{{searchResults.length}}">
+    <view class="row" wx:for="{{searchResults}}" wx:key="userId">
+      <view class="meta">
+        <text>{{item.nickname || '未命名'}}</text>
+        <text class="phone">{{item.phone}}</text>
+      </view>
+      <button size="mini"
+              data-user-id="{{item.userId}}"
+              data-nickname="{{item.nickname}}"
+              data-phone="{{item.phone}}"
+              bindtap="pickUser">选择</button>
+      <view wx:if="{{chosenUserId === item.userId}}" class="tag-selected">已选</view>
+    </view>
+  </view>
+
+  <!-- 课程标题 -->
+  <view class="field">
+    <text class="label">课程标题（可选）</text>
+    <input class="ipt" placeholder="如：私教课" bindinput="onTitleInput" value="{{title}}"/>
+  </view>
+
+  <!-- 开始日期 -->
+  <view class="field">
+    <text class="label">开始日期</text>
+    <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+      <view class="picker">{{startDate}}</view>
+    </picker>
+  </view>
+
+  <!-- 开始时间 -->
+  <view class="field">
+    <text class="label">开始时间</text>
+    <picker mode="time" value="{{startTime}}" bindchange="onStartTimeChange">
+      <view class="picker">{{startTime}}</view>
+    </picker>
+  </view>
+
+  <!-- 结束日期 -->
+  <view class="field">
+    <text class="label">结束日期</text>
+    <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+      <view class="picker">{{endDate}}</view>
+    </picker>
+  </view>
+
+  <!-- 结束时间 -->
+  <view class="field">
+    <text class="label">结束时间</text>
+    <picker mode="time" value="{{endTime}}" bindchange="onEndTimeChange">
+      <view class="picker">{{endTime}}</view>
+    </picker>
+  </view>
+
+  <!-- 创建课程按钮 -->
+  <button class="btn primary" bindtap="createPendingSession" disabled="{{creating}}">
+    {{creating ? '创建中...' : '创建待确认课程'}}
+  </button>
+
+</view>

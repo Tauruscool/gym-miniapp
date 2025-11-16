@@ -1,0 +1,43 @@
+<view class="box">
+
+  <view class="field">
+    <text class="label">用户手机号</text>
+    <input class="ipt" placeholder="请输入 11 位手机号" bindinput="onPhone"/>
+  </view>
+
+  <view class="field">
+    <text class="label">开始日期</text>
+    <picker mode="date" value="{{startDate}}" bindchange="onStartDateChange">
+      <view class="picker">{{startDate}}</view>
+    </picker>
+  </view>
+
+  <view class="field">
+    <text class="label">开始时间</text>
+    <picker mode="time" value="{{startTime}}" bindchange="onStartTimeChange">
+      <view class="picker">{{startTime}}</view>
+    </picker>
+  </view>
+
+  <view class="field">
+    <text class="label">结束日期</text>
+    <picker mode="date" value="{{endDate}}" bindchange="onEndDateChange">
+      <view class="picker">{{endDate}}</view>
+    </picker>
+  </view>
+
+  <view class="field">
+    <text class="label">结束时间</text>
+    <picker mode="time" value="{{endTime}}" bindchange="onEndTimeChange">
+      <view class="picker">{{endTime}}</view>
+    </picker>
+  </view>
+
+  <button class="btn" bindtap="create">创建待确认课程</button>
+
+  <view wx:if="{{sessionId}}" class="result">
+    <text selectable>sessionId: {{sessionId}}</text>
+    <button size="mini" bindtap="copySid">复制</button>
+  </view>
+
+</view>

@@ -1,0 +1,60 @@
+<view class="page">
+  <!-- 课程信息 + 时间编辑 合并 -->
+  <view class="section">
+    <view class="section-title">课程信息</view>
+    <view class="row">
+      <text class="label">课程标题</text>
+      <text class="value">{{title || '未命名课程'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">学员手机号</text>
+      <text class="value">{{phone || '未绑定'}}</text>
+    </view>
+    <view class="row">
+      <text class="label">课程状态</text>
+      <text class="value">{{statusText}}</text>
+    </view>
+    <view class="row row-gap">
+      <text class="label">开始日期</text>
+      <picker mode="date" value="{{startDate}}" bindchange="onStartDate">
+        <view class="value value-clickable">{{startDate || '请选择'}}</view>
+      </picker>
+    </view>
+    <view class="row">
+      <text class="label">开始时间</text>
+      <picker mode="time" value="{{startTime}}" bindchange="onStartTime">
+        <view class="value value-clickable">{{startTime || '请选择'}}</view>
+      </picker>
+    </view>
+    <view class="row row-gap">
+      <text class="label">结束日期</text>
+      <picker mode="date" value="{{endDate}}" bindchange="onEndDate">
+        <view class="value value-clickable">{{endDate || '请选择'}}</view>
+      </picker>
+    </view>
+    <view class="row">
+      <text class="label">结束时间</text>
+      <picker mode="time" value="{{endTime}}" bindchange="onEndTime">
+        <view class="value value-clickable">{{endTime || '请选择'}}</view>
+      </picker>
+    </view>
+    <button class="btn-primary" bindtap="saveTime">保存时间修改</button>
+  </view>
+  <!-- 操作区 -->
+  <view class="section">
+    <view class="section-title">操作</view>
+    <!-- ★ 文案改为"编辑报告" -->
+    <button wx:if="{{status !== 'done'}}"
+            class="btn-primary"
+            bindtap="goEditReport">
+      编辑报告
+    </button>
+    <button wx:elif="{{status === 'done'}}"
+            class="btn-primary"
+            bindtap="goViewReport">
+      查看报告
+    </button>
+    <button class="btn-danger" bindtap="deleteSession">删除课程</button>
+  </view>
+</view>
+

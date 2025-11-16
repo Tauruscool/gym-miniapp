@@ -1,0 +1,5 @@
+<!--pages/report/index.wxml-->
+<view class="container">
+  <text>报表</text>
+</view>
+

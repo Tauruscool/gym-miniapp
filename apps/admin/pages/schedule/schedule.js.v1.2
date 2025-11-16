@@ -1,0 +1,81 @@
+function today() {
+  const d = new Date();
+  const pad = n => (n < 10 ? "0"+n : ""+n);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function addMinutes(dateStr, timeStr, minutes){
+  const d = new Date(`${dateStr} ${timeStr}:00`);
+  d.setMinutes(d.getMinutes() + minutes);
+  const pad = n => (n < 10 ? "0"+n : ""+n);
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  };
+}
+
+function toISO(dateStr, timeStr){ // 转 ISO，避免 undefined
+  return new Date(`${dateStr} ${timeStr}:00`).toISOString();
+}
+
+Page({
+  data:{
+    userPhone:"",
+    startDate: today(),
+    startTime: "09:00",
+    endDate:   today(),
+    endTime:   "10:00",
+    sessionId:""
+  },
+
+  onPhone(e){ this.setData({ userPhone:e.detail.value.trim() }) },
+
+  onStartDateChange(e){
+    const startDate = e.detail.value;
+    // 若结束时间早于开始时间，顺延 60 分钟
+    const {endDate,endTime,startTime} = this.data;
+    let ed = endDate, et = endTime;
+    const sISO = new Date(`${startDate} ${startTime}:00`).getTime();
+    const eISO = new Date(`${endDate} ${endTime}:00`).getTime();
+    if (eISO <= sISO) { const n = addMinutes(startDate, startTime, 60); ed=n.date; et=n.time; }
+    this.setData({ startDate, endDate: ed, endTime: et });
+  },
+
+  onStartTimeChange(e){
+    const startTime = e.detail.value;
+    const {startDate,endDate,endTime} = this.data;
+    let ed = endDate, et = endTime;
+    const sISO = new Date(`${startDate} ${startTime}:00`).getTime();
+    const eISO = new Date(`${endDate} ${endTime}:00`).getTime();
+    if (eISO <= sISO) { const n = addMinutes(startDate, startTime, 60); ed=n.date; et=n.time; }
+    this.setData({ startTime, endDate: ed, endTime: et });
+  },
+
+  onEndDateChange(e){ this.setData({ endDate:e.detail.value }) },
+
+  onEndTimeChange(e){ this.setData({ endTime:e.detail.value }) },
+
+  create(){
+    const { userPhone, startDate, startTime, endDate, endTime } = this.data;
+    if(!userPhone) return wx.showToast({icon:'none',title:'请填写手机号'});
+    const startAt = toISO(startDate, startTime);
+    const endAt   = toISO(endDate,   endTime);
+    if (new Date(endAt).getTime() <= new Date(startAt).getTime()){
+      return wx.showToast({ icon:'none', title:'结束时间必须晚于开始时间' });
+    }
+    wx.cloud.callFunction({
+      name:'admin_create_session',
+      data:{ coachId:'coach_001', userPhone, startAt, endAt, title:'私教课' }
+    }).then(res=>{
+      this.setData({ sessionId: res.result.sessionId });
+      wx.showToast({ title:'已创建' });
+    }).catch(err=>{
+      console.error(err);
+      wx.showToast({ icon:'none', title:(err.message || '创建失败').slice(0,18) });
+    });
+  },
+
+  copySid(){
+    wx.setClipboardData({ data:this.data.sessionId, success:()=>wx.showToast({title:'已复制'}) });
+  }
+});

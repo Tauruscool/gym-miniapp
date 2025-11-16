@@ -1,0 +1,43 @@
+const cloud = require('wx-server-sdk')
+
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
+
+const db = cloud.database()
+
+const _ = db.command
+
+exports.main = async (event) => {
+  const { q = '', startFrom, startTo } = event || {}
+
+  const { OPENID } = cloud.getWXContext()
+
+  // openid -> userId/tenantId
+  const u = await db.collection('users').where({ openid: OPENID })
+    .field({ userId:true, tenantId:true }).limit(1).get()
+
+  if (!u.data?.length) return { list: [], reason: 'no_user' }
+
+  const uid = u.data[0].userId || u.data[0]._id
+
+  const tenantId = u.data[0].tenantId
+
+  // 时间条件
+  let startCond = null
+  if (startFrom) startCond = _.gte(new Date(startFrom).toISOString())
+  if (startTo)   startCond = startCond ? _.and(startCond, _.lte(new Date(startTo).toISOString()))
+                                       : _.lte(new Date(startTo).toISOString())
+
+  const reg = q ? db.RegExp({ regexp: q, options:'i' }) : null
+
+  const base = { userId: uid, status: 'confirmed', ...(tenantId ? { tenantId } : {}), ...(startCond ? { startAt: startCond } : {}) }
+
+  const where = q ? _.and([ base, { title: reg } ]) : base
+
+  const ret = await db.collection('sessions')
+    .where(where)
+    .orderBy('startAt','asc')
+    .field({ _id:true, title:true, startAt:true, endAt:true, status:true })
+    .limit(100).get()
+
+  return { list: ret.data || [] }
+}

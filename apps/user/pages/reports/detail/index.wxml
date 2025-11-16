@@ -1,0 +1,19 @@
+<block wx:if="{{report}}">
+  <view class="section">
+    <view class="section-title">报告详情</view>
+    <view class="helper">课程：{{report.sessionId}}</view>
+    <view class="helper">RPE：{{report.RPE}} ｜ 备注：{{report.comment || '无'}}</view>
+  </view>
+  <view class="section">
+    <view class="section-title">动作明细</view>
+    <block wx:for="{{report.items || []}}" wx:key="code">
+      <view class="card">
+        <view class="card-title">{{item.name}}（{{item.code}}）</view>
+        <view class="card-sub">组×次×重量：{{item.sets}}×{{item.reps}}×{{item.load}}{{item.unit || 'kg'}}</view>
+      </view>
+    </block>
+  </view>
+</block>
+
+<view wx:else class="empty">报告不存在或已删除</view>
+

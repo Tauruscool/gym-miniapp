@@ -1,0 +1,94 @@
+<view class="page">
+  <view class="card">
+    <!-- 标题 -->
+    <view class="card-title">课程表</view>
+    <!-- 当前周选择器：显示 11-10 ~ 11-16，点击切换周 -->
+    <view class="week-range">
+      <picker mode="date" value="{{selectedDate}}" bindchange="onWeekDateChange">
+        <view class="week-range-inner">
+          <text class="week-range-label">{{weekRangeLabel}}</text>
+          <text class="week-range-arrow">切换周 ▾</text>
+        </view>
+      </picker>
+    </view>
+    <!-- 一周的周一~周日 -->
+    <view class="week-days">
+      <view
+        wx:for="{{weekDays}}"
+        wx:key="dateStr"
+        wx:for-item="day"
+        class="day {{day.dateStr === selectedDate ? 'day--active' : ''}} {{day.isToday ? 'day--today' : ''}}"
+        bindtap="onPickDate"
+        data-date="{{day.dateStr}}"
+      >
+        <text class="day-label">{{day.label}}</text>
+        <text class="day-num">{{day.day}}</text>
+      </view>
+    </view>
+    <!-- 工具栏：状态筛选 + 刷新 -->
+    <view class="toolbar">
+      <button class="toolbar-btn" bindtap="onOpenStatusSheet">
+        状态：{{statusLabel}}
+      </button>
+      <button class="toolbar-btn toolbar-btn--secondary" bindtap="refresh">
+        刷新
+      </button>
+    </view>
+    <!-- 加载状态 / 空状态 / 正常列表 -->
+    <view wx:if="{{loading}}" class="hint">正在加载...</view>
+    <view wx:elif="{{!loading && segments.length === 0}}" class="hint">
+      该日暂无课程
+    </view>
+    <block wx:else>
+      <!-- 上午 / 下午 / 晚上 -->
+      <view
+        wx:for="{{segments}}"
+        wx:key="key"
+        wx:for-item="seg"
+        class="segment"
+      >
+        <view class="segment-title">{{seg.label}}</view>
+        <!-- 每个时间槽 -->
+        <view
+          wx:for="{{seg.slots}}"
+          wx:key="time"
+          wx:for-item="slot"
+          class="slot-row"
+        >
+          <view class="slot-time">{{slot.time}}</view>
+          <view class="slot-courses">
+            <!-- 没课 -->
+            <block wx:if="{{!slot.sessions || slot.sessions.length === 0}}">
+              <view class="course course--empty">
+                无课程
+              </view>
+            </block>
+            <!-- 有课：遍历课程 -->
+            <block wx:elif="{{slot.sessions.length > 0}}">
+              <view
+                wx:for="{{slot.sessions}}"
+                wx:for-item="s"
+                wx:key="_id"
+                class="course"
+                bindtap="goDetail"
+                data-id="{{s._id}}"
+              >
+                <view class="course-line">
+                  <text class="course-time">{{s.startHM}}~{{s.endHM}}</text>
+                  <text class="course-status status status--{{s.status}}">{{s.statusText}}</text>
+                </view>
+                <view class="course-line">
+                  <text class="course-title">{{s.title || '未命名课程'}}</text>
+                </view>
+                <view class="course-line">
+                  <text class="course-user">{{s.userName || '未命名学员'}}</text>
+                  <text wx:if="{{s.userPhone}}"> · {{s.userPhone}}</text>
+                </view>
+              </view>
+            </block>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>

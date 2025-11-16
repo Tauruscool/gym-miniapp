@@ -1,0 +1,83 @@
+const cloud = require('wx-server-sdk')
+
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
+
+const db = cloud.database()
+
+const _ = db.command
+
+
+
+exports.main = async (event, context) => {
+
+  const { includeConfirmed = false, tenantId } = event || {}
+
+  const { OPENID } = cloud.getWXContext()
+
+
+
+  // 1) openid → userId
+
+  const userRes = await db.collection('users')
+
+    .where({ openid: OPENID })
+
+    .field({ userId: true, tenantId: true })
+
+    .limit(1).get()
+
+  if (!userRes.data?.length) {
+
+    return { list: [], reason: 'no_user' }
+
+  }
+
+  const me = userRes.data[0]
+
+  const uid = me.userId || me._id
+
+  const tid = tenantId || me.tenantId || null
+
+
+
+  // 2) 组合条件
+
+  const statusFilter = includeConfirmed ? _.in(['pending', 'confirmed']) : 'pending'
+
+  const where = {
+
+    userId: uid,
+
+    status: statusFilter
+
+  }
+
+  if (tid) where.tenantId = tid
+
+
+
+  // 3) 查询
+
+  const ret = await db.collection('sessions')
+
+    .where(where)
+
+    .orderBy('startAt', 'asc')
+
+    .field({
+
+      _id: true, userId: true, startAt: true, endAt: true,
+
+      title: true, status: true, coachId: true, tenantId: true
+
+    })
+
+    .limit(50)
+
+    .get()
+
+
+
+  return { list: ret.data || [] }
+
+}

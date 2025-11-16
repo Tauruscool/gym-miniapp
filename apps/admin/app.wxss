@@ -1,0 +1,6 @@
+/* apps/admin/app.wxss */
+
+@import "./styles/theme.wxss";
+
+/* 其余全局样式… */
+

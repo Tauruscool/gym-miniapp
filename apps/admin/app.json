@@ -1,0 +1,19 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/users/index",
+    "pages/users/detail/index",
+    "pages/sessions/index",
+    "pages/sessions/detail/index",
+    "pages/sessions/overview/index",
+    "pages/schedule/schedule",
+    "pages/report/report",
+    "pages/report/actions/index",
+    "pages/report/actions/create/index"
+  ],
+  "window": {
+    "backgroundColor": "#F6F6F6"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

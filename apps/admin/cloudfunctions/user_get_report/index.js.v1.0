@@ -1,0 +1,18 @@
+const cloud = require('wx-server-sdk')
+
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
+
+const db = cloud.database()
+
+exports.main = async (event) => {
+  const { reportId } = event || {}
+
+  if (!reportId) throw new Error('user_get_report: 缺少 reportId')
+
+  const { data } = await db.collection('training_reports').doc(reportId).get()
+
+  // 这里可按需脱敏
+
+  return { report: data }
+}
+

@@ -1,0 +1,41 @@
+// 拉取当前登录用户的"待确认"课程列表
+
+// 可选参数：pageSize(默认50)、onlyFuture(默认true)、tenantId(默认't_default')
+const cloud = require('wx-server-sdk');
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database();
+const _ = db.command;
+
+exports.main = async (event = {}) => {
+  const { OPENID } = cloud.getWXContext();
+  const { pageSize = 50, onlyFuture = true, tenantId = 't_default' } = event;
+
+  // 1) 找到当前登录用户
+  const uRes = await db.collection('users').where({ openid: OPENID, tenantId }).get();
+  if (!uRes.data.length) throw new Error('请先登录');
+
+  const userId = uRes.data[0]._id; // 修复：使用 _id 而不是 userId 字段
+
+  // 2) 组织查询条件：该用户 + 待确认 + （可选）未来时间
+  const where = { userId, tenantId, status: 'pending' };
+  if (onlyFuture) where.startAt = _.gte(new Date().toISOString());
+
+  // 3) 按开始时间升序，取前 N 条
+  const res = await db.collection('sessions')
+    .where(where)
+    .orderBy('startAt', 'asc')
+    .limit(Math.min(pageSize, 100))
+    .get();
+
+  // 4) 精简返回字段
+  const list = res.data.map(s => ({
+    _id: s._id,
+    title: s.title || '私教课',
+    startAt: s.startAt,
+    endAt: s.endAt,
+    coachId: s.coachId
+  }));
+
+  return { list, count: list.length };
+};
+

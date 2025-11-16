@@ -1,0 +1,9 @@
+{
+  "miniprogramRoot": ".",
+  "cloudfunctionRoot": "cloudfunctions",
+  "appid": "wx90658577bf8d026b",
+  "setting": {
+    "useCloud": true
+  },
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/"
+}

@@ -1,0 +1,54 @@
+const cloud = require('wx-server-sdk');
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database();
+
+function toISO(x){
+  if (!x) return null;
+  // 已是 ISO
+  if (/^\d{4}-\d{2}-\d{2}T/.test(x)) {
+    const d = new Date(x);
+    return isNaN(d) ? null : d.toISOString();
+  }
+  // "YYYY-MM-DD HH:mm"
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(x)) {
+    const d = new Date(x.replace(' ', 'T') + ':00');
+    return isNaN(d) ? null : d.toISOString();
+  }
+  return null;
+}
+
+exports.main = async (event) => {
+  const { coachId, userPhone, userId, startAt, endAt, title } = event;
+
+  // 1) 寻找用户（支持 userId 或 phone）
+  let u;
+  if (userId)      u = await db.collection('users').where({ userId }).get();
+  else if (userPhone) u = await db.collection('users').where({ phone: userPhone }).get();
+  else throw new Error('缺少 userId 或 userPhone');
+
+  if (!u.data.length) throw new Error(`创建会话失败: 未找到 ${userId || ('手机号为 '+userPhone)} 的用户`);
+  const targetUserId = u.data[0].userId;
+
+  // 2) 时间校验与标准化
+  const sISO = toISO(startAt);
+  const eISO = toISO(endAt);
+  if (!sISO || !eISO) throw new Error('创建会话失败: 时间格式不合法');
+  if (new Date(eISO).getTime() <= new Date(sISO).getTime()) {
+    throw new Error('创建会话失败: 结束时间需晚于开始时间');
+  }
+
+  // 3) 写入（禁止 undefined 字段）
+  const doc = {
+    userId: targetUserId,
+    coachId: coachId || 'unknown',
+    startAt: sISO,
+    endAt: eISO,
+    title: title || '私教课',
+    status: 'pending',
+    tenantId: 't_default',
+    createdAt: new Date()
+  };
+
+  const res = await db.collection('sessions').add({ data: doc });
+  return { sessionId: res._id };
+};

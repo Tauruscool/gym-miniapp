@@ -1,0 +1,329 @@
+<view class="wrap">
+
+  <view class="title">训练报告</view>
+
+
+
+  <!-- A. 选择学员（蓝色主题） -->
+
+  <view class="card card--student">
+
+    <view class="card__head">选择学员</view>
+
+    <view class="row">
+
+      <input class="ipt ipt--search" placeholder="手机号/姓名" bindinput="onUserQ"/>
+
+      <button class="btn btn--primary" bindtap="searchUsers">搜索</button>
+
+    </view>
+
+    <block wx:if="{{userResults.length}}">
+
+      <block wx:for="{{userResults}}" wx:key="userId" wx:for-index="idx">
+
+        <view class="line selectable {{chosenUserId===item.userId?'on':''}}">
+
+          <view class="left">
+
+            <text class="tag-selected" wx:if="{{chosenUserId===item.userId}}">已选</text>
+
+            <view class="uinfo">{{item.nickname || '未命名'}}（{{item.phone || '无手机号'}}）</view>
+
+          </view>
+
+          <button size="mini" class="choose-btn"
+
+                  data-user-id="{{item.userId}}"
+
+                  data-nickname="{{item.nickname || '未命名'}}"
+
+                  data-phone="{{item.phone || ''}}"
+
+                  bindtap="pickUser">选择</button>
+
+        </view>
+
+      </block>
+
+    </block>
+
+    <view class="tips" wx:if="{{!userResults.length}}">输入关键词后点击"搜索"</view>
+
+    <view class="chosen" wx:if="{{chosenUserId}}">
+
+      已选学员：{{chosenUser.nickname}}（{{chosenUser.phone || '无手机号'}}）
+
+    </view>
+
+  </view>
+
+
+
+  <!-- B. 选择课程（青色主题） -->
+
+  <view class="card card--session">
+
+    <view class="card__head">选择课程</view>
+
+    <view class="row">
+
+      <picker mode="selector" range="{{statusFilters}}" value="{{statusIdx}}" bindchange="onStatusChange">
+
+        <view class="picker">{{statusFilters[statusIdx]}}</view>
+
+      </picker>
+
+
+
+      <view class="switchrow">
+
+        <switch checked="{{onlyFuture}}" bindchange="toggleFuture"/>
+
+        <text class="swlabel">仅看未开始</text>
+
+      </view>
+
+
+
+      <button class="btn btn--ghost" bindtap="loadSessions">刷新</button>
+
+    </view>
+
+
+
+    <block wx:if="{{!chosenUserId}}">
+
+      <view class="tips">请先选择学员</view>
+
+    </block>
+
+
+
+    <block wx:if="{{chosenUserId}}">
+
+      <block wx:if="{{sessions.length}}">
+
+        <block wx:for="{{sessions}}" wx:key="_id">
+
+          <view class="line">
+
+            <view class="sinfo">
+
+              <text class="name">{{item.title}}</text>
+
+              <view class="session-meta">
+
+                <text class="session-date">{{item._dateStr}}</text>
+
+                <text class="session-time">{{item._timeRange}}</text>
+
+              </view>
+
+              <text class="badge {{item.status}}">{{statusText(item.status)}}</text>
+
+            </view>
+
+            <radio value="{{item._id}}" checked="{{item._id===sessionId}}" data-id="{{item._id}}" bindtap="pickSession"/>
+
+          </view>
+
+        </block>
+
+      </block>
+
+      <view class="tips" wx:if="{{!sessions.length}}">该学员暂无符合条件的课程，点"刷新"再试</view>
+
+
+
+      <view class="chosen" wx:if="{{sessionId}}">已选课程 ID：{{sessionId}}</view>
+
+    </block>
+
+  </view>
+
+
+
+  <!-- C. 填写报告（橙色主题） -->
+
+  <view class="card card--report">
+
+    <view class="card__head">填写报告</view>
+
+
+
+    <!-- 扣费金额：芯片 + 自定义 -->
+
+    <view class="subtle">本次从余额扣除的金额（可不扣）</view>
+
+    <view class="chips">
+
+      <block wx:for="{{deductChips}}" wx:key="*this">
+
+        <view class="chip {{deduct===item?'on':''}}" data-v="{{item}}" bindtap="pickDeductChip">
+
+          {{item===0?'不扣费':('¥'+item)}}
+
+        </view>
+
+      </block>
+
+      <view class="chip {{isCustomDeduct?'on':''}}" bindtap="enableCustomDeduct">自定义</view>
+
+    </view>
+
+    <input wx:if="{{isCustomDeduct}}" class="ipt ipt--money"
+
+           type="number" placeholder="输入自定义金额（元）"
+
+           value="{{deduct>0?deduct:''}}"
+
+           bindinput="onDeduct"/>
+
+
+
+    <textarea class="ta" placeholder="备注（可选：状态、疼痛、调整建议等）" bindinput="onComment" value="{{comment}}"></textarea>
+
+
+
+    <!-- 主观用力程度 -->
+
+    <view class="rpe">
+
+      <view class="label">主观用力程度（1-10）<text class="note">（1=非常轻松；10=极限）</text></view>
+
+      <view class="rpe-row">
+
+        <block wx:for="{{rpeOptions}}" wx:key="*this">
+
+          <view class="chip {{RPE===item?'on':''}}" data-v="{{item}}" bindtap="pickRPE">{{item}}</view>
+
+        </block>
+
+      </view>
+
+    </view>
+
+  </view>
+
+
+
+  <!-- E. 已选动作（绿色主题） -->
+
+  <view class="card card--selected">
+
+    <view class="card__head">已选动作（可编辑）</view>
+
+    <!-- 整个卡片作为"入口"，点击空白处也会触发 goSelectActions -->
+
+    <view class="actions-list" bindtap="goSelectActions">
+
+      <block wx:if="{{selected && selected.length}}">
+
+        <view
+
+          wx:for="{{selected}}"
+
+          wx:key="code"
+
+          wx:for-item="act"
+
+          class="action-chip"
+
+          catchtap="stopPropagation"
+
+        >
+
+          <view class="action-chip-content">
+
+            <view class="action-chip-name">{{act.name}}</view>
+
+            <view class="action-chip-meta">
+
+              {{act.muscleGroup}} · {{act.defaultLoad || act.load || ''}}{{act.unit === 'sec' ? '秒' : (act.unit || 'kg')}}
+
+            </view>
+
+            <view class="action-chip-edit" wx:if="{{act.sets || act.reps}}">
+
+              {{act.sets}}组 × {{act.reps}}次
+
+            </view>
+
+          </view>
+
+          <button size="mini" class="action-chip-remove" data-code="{{act.code}}" bindtap="removeOne">移除</button>
+
+        </view>
+
+      </block>
+
+      <block wx:else>
+
+        <view class="actions-empty">
+
+          点击此处添加训练动作
+
+        </view>
+
+      </block>
+
+    </view>
+
+  </view>
+
+
+
+  <!-- 已选动作详细编辑区域（展开显示） -->
+
+  <view class="card card--edit" wx:if="{{selected && selected.length}}">
+
+    <view class="card__head">编辑训练参数</view>
+
+    <block wx:for="{{selected}}" wx:key="code">
+
+      <view class="sel">
+
+        <view class="s-top">
+
+          <view class="name">{{item.name}}</view>
+
+        </view>
+
+        <view class="grid">
+
+          <view class="g-item"><text>组数</text>
+
+            <input class="num" type="number" value="{{item.sets}}" data-code="{{item.code}}" data-field="sets" bindinput="editItem"/></view>
+
+          <view class="g-item"><text>每组次数</text>
+
+            <input class="num" type="number" value="{{item.reps}}" data-code="{{item.code}}" data-field="reps" bindinput="editItem"/></view>
+
+          <view class="g-item"><text>{{item.unit==='sec'?'时长(秒)':'重量'}}</text>
+
+            <input class="num" type="number" value="{{item.load}}" data-code="{{item.code}}" data-field="load" bindinput="editItem"/></view>
+
+          <view class="g-item2"><text>备注</text>
+
+            <input class="ipt" placeholder="可选" value="{{item.notes}}" data-code="{{item.code}}" data-field="notes" bindinput="editItem"/></view>
+
+        </view>
+
+      </view>
+
+    </block>
+
+  </view>
+
+
+
+  <!-- F. 提交 -->
+
+  <view class="card card--submit">
+
+    <button class="btn btn--success btn--full" bindtap="submit">提交报告并扣费</button>
+
+  </view>
+
+</view>

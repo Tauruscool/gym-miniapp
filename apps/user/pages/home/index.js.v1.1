@@ -1,0 +1,123 @@
+Page({
+
+  data: {
+    pending: [],
+    loading: false,
+    emptyHint: '',
+    phone: "",
+    sessionId: ""
+  },
+
+  onLoad() {
+    this.refreshPending()
+  },
+
+  onShow() {
+    const uid = wx.getStorageSync('userId');
+    if (uid) this.refreshPending();
+  },
+
+  async refreshPending() {
+    this.setData({ loading: true, emptyHint: '' })
+    try {
+      const tenantId = getApp().globalData?.tenantId
+      const { result } = await wx.cloud.callFunction({
+        name: 'user_list_pending_sessions',
+        data: { includeConfirmed: false, tenantId }
+      })
+      const list = result?.list || []
+      this.setData({
+        pending: list,
+        emptyHint: list.length ? '' : '暂无待确认课程'
+      })
+      // 调试输出，便于你排查 tenantId/userId
+      console.log('pending sessions:', list)
+    } catch (e) {
+      console.error('refreshPending error', e)
+      wx.showToast({ title: '刷新失败', icon: 'none' })
+    } finally {
+      this.setData({ loading: false })
+      wx.stopPullDownRefresh()
+    }
+  },
+
+  onPullDownRefresh() {
+    this.refreshPending()
+  },
+
+  onLogin() {
+    wx.cloud.callFunction({ name: "auth_login" })
+      .then(res => {
+        const { userId } = res.result || {};
+        if (userId) wx.setStorageSync("userId", userId);
+        wx.showToast({ title: "登录成功" });
+        this.refreshPending();
+      })
+      .catch(err => {
+        console.error(err);
+        wx.showToast({ icon: "error", title: "登录失败" });
+      });
+  },
+
+  onPhoneInput(e) { this.setData({ phone: e.detail.value.trim() }); },
+
+  bindPhone() {
+    const phone = this.data.phone;
+    if (!phone) return wx.showToast({ icon:'none', title:'请先输入手机号' });
+    wx.cloud.callFunction({ name:'user_bind_phone', data:{ phone } })
+      .then(()=> wx.showToast({ title:'绑定成功' }))
+      .catch(err=>{
+        console.error(err);
+        wx.showToast({ icon:'none', title: err.message || '绑定失败' });
+      });
+  },
+
+  confirmOne(e) {
+    const sessionId = e.currentTarget.dataset.id;
+    this.confirmById(sessionId);
+  },
+
+  onSessionInput(e) { this.setData({ sessionId: e.detail.value.trim() }); },
+
+  onConfirm() {
+    if (!this.data.sessionId) return wx.showToast({ icon:'none', title:'请先粘贴 sessionId' });
+    this.confirmById(this.data.sessionId);
+  },
+
+  confirmById(sessionId){
+    wx.cloud.callFunction({ name:'confirm_session', data:{ sessionId } })
+      .then(r => {
+        // confirm_session 返回的是平铺结构，不是嵌套在 session 中
+        const s = r.result;
+        if (!s || !s.title) throw new Error('未找到课程');
+
+        // 写系统日历（真机更可靠）
+        if (wx.addPhoneCalendar) {
+          wx.addPhoneCalendar({
+            title: s.title || '私教课',
+            startTime: Math.floor(new Date(s.startAt).getTime()/1000),
+            endTime: Math.floor(new Date(s.endAt).getTime()/1000),
+            success: ()=> wx.showToast({ title:'已加到日历' }),
+            fail: ()=> wx.showToast({ icon:'none', title:'请在真机测试日历写入' })
+          });
+        } else {
+          wx.showToast({ icon:'none', title:'基础库过低或工具不支持日历' });
+        }
+
+        // 列表里剔除
+        const rest = this.data.pending.filter(x => x._id !== sessionId);
+        this.setData({ pending: rest });
+      })
+      .catch(err => {
+        console.error(err);
+        wx.showToast({ icon: "none", title: err.message || "确认失败" });
+      });
+  },
+
+  fmt(iso) {
+    const d = new Date(iso);
+    const pad = n => (n<10 ? '0'+n : ''+n);
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+});

@@ -1,0 +1,56 @@
+// 按学员列出课程（默认：待确认/已确认，可选仅未来）
+
+const cloud = require('wx-server-sdk');
+
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+
+const db = cloud.database();
+
+const _ = db.command;
+
+exports.main = async (event = {}) => {
+  const {
+    userId,                          // 必填
+    statusIn = ['pending', 'confirmed'],
+    status,                          // 可选：单个状态（优先级高于 statusIn）
+    onlyFuture = false,
+    startFrom,                       // 可选：开始时间范围起点
+    startTo,                         // 可选：结束时间范围终点
+    page = 0, pageSize = 20,
+    tenantId = 't_default'
+  } = event;
+
+  if (!userId) throw new Error('缺少学员ID');
+
+  const limit = Math.min(pageSize, 50);
+
+  const conds = [{ tenantId }, { userId }];
+
+  // 状态过滤：优先使用单个 status，否则使用 statusIn
+  if (status) {
+    conds.push({ status });
+  } else {
+    conds.push({ status: _.in(statusIn) });
+  }
+
+  // 日期范围过滤
+  if (startFrom) conds.push({ startAt: _.gte(startFrom) });
+  if (startTo) conds.push({ endAt: _.lte(startTo) });
+
+  if (onlyFuture) conds.push({ startAt: _.gte(new Date().toISOString()) });
+
+  const res = await db.collection('sessions')
+    .where(_.and(conds))
+    .orderBy('startAt', 'desc')
+    .skip(page * limit)
+    .limit(limit)
+    .get();
+
+  const list = res.data.map(s => ({
+    _id: s._id, title: s.title || '私教课',
+    startAt: s.startAt, endAt: s.endAt, status: s.status
+  }));
+
+  return { list, hasMore: list.length === limit, page, pageSize: limit };
+};
+

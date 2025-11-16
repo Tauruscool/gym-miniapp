@@ -1,0 +1,60 @@
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 40rpx 32rpx;
+  box-sizing: border-box;
+}
+
+.home-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 48rpx 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.04);
+  text-align: center;
+}
+
+.home-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+  color: #111827;
+}
+
+.home-sub {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-bottom: 40rpx;
+}
+
+.home-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+/* 通用按钮尺寸 */
+.home-btn {
+  border-radius: 999rpx;
+  padding: 24rpx 32rpx;
+  font-size: 30rpx;
+  border: none;
+}
+
+/* 课程管理：深色底白字 */
+.home-btn--sessions {
+  background: #111827;
+  color: #ffffff;
+}
+
+/* 课程表：深灰底白字 */
+.home-btn--overview {
+  background: #374151;
+  color: #ffffff;
+}
+
+/* 学员管理：绿色底白字 */
+.home-btn--users {
+  background: #059669;
+  color: #ffffff;
+}
+

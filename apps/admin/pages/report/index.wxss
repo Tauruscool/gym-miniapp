@@ -1,0 +1,6 @@
+
+/* pages/report/index.wxss */
+.container {
+  padding: 20rpx;
+}
+

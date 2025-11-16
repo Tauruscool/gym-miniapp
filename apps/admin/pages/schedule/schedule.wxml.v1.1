@@ -1,0 +1,11 @@
+<view class="box">
+  <input placeholder="用户手机号" bindinput="onPhone"/>
+  <input placeholder="开始时间(YYYY-MM-DD HH:mm)" bindinput="onStart"/>
+  <input placeholder="结束时间(YYYY-MM-DD HH:mm)" bindinput="onEnd"/>
+  <button bindtap="create">创建待确认课程</button>
+  <view wx:if="{{sessionId}}" class="result">
+    <text selectable>sessionId: {{sessionId}}</text>
+    <button size="mini" bindtap="copySid">复制</button>
+  </view>
+</view>
+

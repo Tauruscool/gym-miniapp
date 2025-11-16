@@ -1,0 +1,187 @@
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 32rpx;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.04);
+}
+
+/* 标题与顶部留点空间 */
+.card-title {
+  font-size: 34rpx;   /* 稍微大一丢丢 */
+  font-weight: 600;
+  margin-bottom: 18rpx;
+}
+
+/* 当前周选择器 */
+.week-range {
+  margin-bottom: 20rpx;  /* 原来 12rpx，拉开和日期行的距离 */
+}
+
+.week-range-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14rpx 24rpx;   /* 原来 10rpx 20rpx，增大可点区域 */
+  border-radius: 999rpx;
+  background: #f3f4f6;
+}
+
+.week-range-label {
+  font-size: 26rpx;       /* 原来 24rpx */
+  color: #111827;
+}
+
+.week-range-arrow {
+  font-size: 24rpx;       /* 原来 22rpx */
+  color: #6b7280;
+}
+
+/* 一周周一~周日 */
+.week-days {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20rpx;   /* 原来 16rpx，和下面工具栏拉开一点 */
+}
+
+.day {
+  width: 82rpx;           /* 原来 70rpx，点击区域更宽 */
+  text-align: center;
+  padding: 8rpx 0;        /* 原来 4rpx 0，点击区域更高 */
+  border-radius: 999rpx;
+}
+
+.day-label {
+  font-size: 22rpx;       /* 原来 20rpx */
+  color: #6b7280;
+}
+
+.day-num {
+  font-size: 26rpx;       /* 原来 22rpx */
+  font-weight: 600;
+  color: #111827;
+}
+
+.day--active {
+  background: #111827;
+}
+
+.day--active .day-label,
+.day--active .day-num {
+  color: #ffffff;
+}
+
+.day--today {
+  border: 2rpx solid #059669;
+}
+
+/* 工具栏：状态筛选 + 刷新 */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  gap: 16rpx;
+}
+
+.toolbar-btn {
+  flex: 1;
+  border-radius: 999rpx;
+  padding: 12rpx 24rpx;
+  font-size: 24rpx;
+  background: #111827;
+  color: #ffffff;
+  border: none;
+}
+
+.toolbar-btn--secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.hint {
+  font-size: 24rpx;
+  color: #6b7280;
+  padding: 12rpx 0;
+}
+
+/* 时间轴结构：上午 / 下午 / 晚上 */
+.segment {
+  margin-top: 16rpx;
+}
+
+.segment-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
+.slot-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 8rpx;
+}
+
+.slot-time {
+  width: 120rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.slot-courses {
+  flex: 1;
+}
+
+.course {
+  padding: 12rpx 16rpx;
+  border-radius: 16rpx;
+  background: #f9fafb;
+  margin-bottom: 8rpx;
+}
+
+.course--empty {
+  color: #9ca3af;
+  background: transparent;
+  padding-left: 0;
+}
+
+.course-line {
+  font-size: 24rpx;
+  color: #111827;
+}
+
+.course-time {
+  margin-right: 12rpx;
+}
+
+.course-user {
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.course-status {
+  font-size: 22rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 999rpx;
+}
+
+.status--pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.status--confirmed {
+  background: #ecfdf3;
+  color: #15803d;
+}
+
+.status--done {
+  background: #eef2ff;
+  color: #4f46e5;
+}

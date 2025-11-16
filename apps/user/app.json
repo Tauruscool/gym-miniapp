@@ -1,0 +1,17 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/sessions/confirmed/index",
+    "pages/reports/list/index",
+    "pages/reports/detail/index",
+    "pages/profile/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "用户端",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundTextStyle": "light"
+  },
+  "lazyCodeLoading": "requiredComponents"
+}
+
+

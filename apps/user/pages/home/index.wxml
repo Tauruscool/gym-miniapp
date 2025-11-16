@@ -1,0 +1,23 @@
+<view class="section">
+  <view class="section-title">待确认课程</view>
+  <input placeholder="搜索课程标题" bindinput="onKeyword" value="{{q}}" />
+  <picker mode="date" value="{{startDate}}" bindchange="onStartDate"><view class="chip">开始：{{startDate||'—'}}</view></picker>
+  <picker mode="date" value="{{endDate}}" bindchange="onEndDate"><view class="chip">结束：{{endDate||'—'}}</view></picker>
+  <button class="btn-secondary" bindtap="refreshPending" loading="{{loading}}">刷新</button>
+  <view class="chips">
+    <button class="chip chip--ghost" bindtap="goConfirmed">查看已确认</button>
+    <button class="chip chip--ghost" bindtap="goReports">查看训练报告</button>
+  </view>
+</view>
+
+<block wx:if="{{pending.length}}">
+  <view class="card" wx:for="{{pending}}" wx:key="_id">
+    <view class="card-title">{{item.title}}</view>
+    <view class="card-sub">{{item.startAt}} ~ {{item.endAt}}</view>
+    <view class="tag tag-pending">待确认</view>
+    <!-- 保留"确认并加日历"原有按钮，内部使用 item._id，不展示任何 sessionId 文本 -->
+    <button class="btn-primary" data-id="{{item._id}}" bindtap="confirmAndAddCalendar">确认并加日历</button>
+  </view>
+</block>
+
+<view wx:else class="empty">暂无待确认课程</view>

@@ -1,0 +1,17 @@
+<view class="section">
+  <view class="section-title">训练报告</view>
+  <input placeholder="搜索备注" bindinput="onKeyword" value="{{q}}" />
+  <picker mode="date" value="{{createdFrom}}" bindchange="onCreatedFrom"><view class="chip">创建开始：{{createdFrom||'—'}}</view></picker>
+  <picker mode="date" value="{{createdTo}}" bindchange="onCreatedTo"><view class="chip">创建结束：{{createdTo||'—'}}</view></picker>
+  <button class="btn-secondary" bindtap="fetch" loading="{{loading}}">刷新</button>
+</view>
+
+<block wx:if="{{list.length}}">
+  <view class="card" wx:for="{{list}}" wx:key="_id" data-id="{{item._id}}" bindtap="toDetail">
+    <view class="card-title">报告日期：{{item.createdAt}}</view>
+    <view class="card-sub">RPE：{{item.RPE || '-' }}  备注：{{item.comment || '无'}}</view>
+  </view>
+</block>
+
+<view wx:else class="empty">暂无训练报告</view>
+

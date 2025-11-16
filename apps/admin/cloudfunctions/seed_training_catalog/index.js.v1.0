@@ -1,0 +1,92 @@
+// seed_training_catalog - 种子数据：基础训练动作
+const cloud = require('wx-server-sdk');
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database();
+
+exports.main = async (event, context) => {
+  const tenantId = 't_default';
+  const now = new Date();
+
+  // 定义要插入的训练动作数据（5条）
+  const catalogItems = [
+    {
+      code: 'SQ',
+      name: '深蹲',
+      unit: 'kg',
+      defaultValue: 20,
+      tenantId: tenantId,
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      code: 'DL',
+      name: '硬拉',
+      unit: 'kg',
+      defaultValue: 30,
+      tenantId: tenantId,
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      code: 'BP',
+      name: '卧推',
+      unit: 'kg',
+      defaultValue: 20,
+      tenantId: tenantId,
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      code: 'ROW',
+      name: '俯身划船',
+      unit: 'kg',
+      defaultValue: 15,
+      tenantId: tenantId,
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      code: 'PLANK',
+      name: '平板支撑',
+      unit: 'sec',
+      defaultValue: 60,
+      tenantId: tenantId,
+      createdAt: now,
+      updatedAt: now
+    }
+  ];
+
+  let inserted = 0;
+  let skipped = 0;
+
+  try {
+    // 幂等插入：遍历每个动作，检查是否已存在（按 code 和 tenantId 判断）
+    for (const item of catalogItems) {
+      const existingQuery = await db.collection('training_catalog')
+        .where({
+          code: item.code,
+          tenantId: tenantId
+        })
+        .get();
+
+      if (existingQuery.data.length > 0) {
+        // 已存在相同 code，跳过（幂等性保证）
+        skipped++;
+      } else {
+        // 不存在，插入新记录
+        await db.collection('training_catalog').add({
+          data: item
+        });
+        inserted++;
+      }
+    }
+
+    return {
+      inserted: inserted,
+      skipped: skipped,
+      total: catalogItems.length
+    };
+  } catch (error) {
+    throw new Error(`插入种子数据失败: ${error.message}`);
+  }
+};

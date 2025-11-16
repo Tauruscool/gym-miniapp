@@ -1,0 +1,5 @@
+<!--pages/schedule/index.wxml-->
+<view class="container">
+  <text>课程表</text>
+</view>
+

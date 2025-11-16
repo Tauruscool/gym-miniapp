@@ -1,0 +1,64 @@
+const cloud = require('wx-server-sdk')
+
+cloud.init()
+
+const db = cloud.database()
+
+const _ = db.command
+
+
+
+exports.main = async (event, context) => {
+
+  const { userId, coachId, startAt, endAt, title, tenantId } = event || {}
+
+
+
+  // 1) 强校验
+
+  if (!userId) throw new Error('admin_create_session: 缺少 userId')
+
+  if (!startAt || !endAt) throw new Error('admin_create_session: 缺少时间')
+
+  if (!tenantId) throw new Error('admin_create_session: 缺少 tenantId')
+
+
+
+  // 2) 统一时间为 ISO
+
+  const s = new Date(startAt)
+
+  const e = new Date(endAt)
+
+  if (isNaN(+s) || isNaN(+e)) throw new Error('admin_create_session: 非法时间')
+
+
+
+  // 3) 写入 sessions，状态固定 pending
+
+  const doc = {
+
+    userId,
+
+    coachId: coachId || null,
+
+    startAt: s.toISOString(),
+
+    endAt: e.toISOString(),
+
+    title: title || '未命名课程',
+
+    status: 'pending',
+
+    tenantId,
+
+    createdAt: db.serverDate()
+
+  }
+
+  const { _id } = await db.collection('sessions').add({ data: doc })
+
+  return { sessionId: _id }
+
+}
+

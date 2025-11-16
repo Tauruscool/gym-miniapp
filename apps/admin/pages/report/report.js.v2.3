@@ -1,0 +1,261 @@
+const musclesDefault = ["全部", "下肢", "后链", "胸", "背", "核心"];
+
+
+
+Page({
+
+  data: {
+
+    // 学员选择
+
+    userQ: "", userResults: [], chosenUser: {},
+
+    statusFilters: ["待确认或已确认", "仅待确认", "仅已确认"],
+
+    statusIdx: 0, onlyFuture: false, sessions: [], sessionId: "",
+
+
+
+    // 报告填写
+
+    deduct: 100, comment: "", RPE: 7, rpeOptions: [1,2,3,4,5,6,7,8,9,10],
+
+
+
+    // 动作库
+
+    key: "", muscles: musclesDefault, muscleIdx: 0,
+
+    page: 0, results: [], hasMore: false, selected: []
+
+  },
+
+
+
+  // ====== A. 学员选择 ======
+
+  onUserQ(e){ this.setData({ userQ: e.detail.value.trim() }); },
+
+  searchUsers(){
+
+    wx.showLoading({ title:'搜索中' });
+
+    wx.cloud.callFunction({ name:'admin_search_users', data:{ q: this.data.userQ, page:0, pageSize:20 } })
+
+      .then(r => this.setData({ userResults: r.result?.list || [] }))
+
+      .catch(err => { console.error(err); wx.showToast({ icon:'none', title:(err.message||'搜索失败').slice(0,17) }); })
+
+      .finally(()=> wx.hideLoading());
+
+  },
+
+  pickUser(e){
+
+    const chosenUser = { userId: e.currentTarget.dataset.id, nickname: e.currentTarget.dataset.name, phone: e.currentTarget.dataset.phone };
+
+    this.setData({ chosenUser, sessions: [], sessionId: "" });
+
+    this.loadSessions();
+
+  },
+
+
+
+  // ====== B. 课程选择 ======
+
+  onStatusChange(e){ this.setData({ statusIdx: Number(e.detail.value) }); },
+
+  toggleFuture(e){ this.setData({ onlyFuture: e.detail.value }); },
+
+  loadSessions(){
+
+    if (!this.data.chosenUser.userId) return wx.showToast({ icon:'none', title:'请先选择学员' });
+
+    const mapping = [
+
+      ['pending','confirmed'],
+
+      ['pending'],
+
+      ['confirmed']
+
+    ];
+
+    wx.showLoading({ title:'加载课程' });
+
+    wx.cloud.callFunction({
+
+      name:'admin_list_sessions',
+
+      data:{
+
+        userId: this.data.chosenUser.userId,
+
+        statusIn: mapping[this.data.statusIdx],
+
+        onlyFuture: this.data.onlyFuture,
+
+        page: 0, pageSize: 50
+
+      }
+
+    }).then(r=>{
+
+      this.setData({ sessions: r.result?.list || [] });
+
+      if (!(r.result?.list || []).length) wx.showToast({ icon:'none', title:'暂无符合的课程' });
+
+    }).catch(err=>{
+
+      console.error(err);
+
+      wx.showToast({ icon:'none', title:(err.message||'加载失败').slice(0,17) });
+
+    }).finally(()=> wx.hideLoading());
+
+  },
+
+  pickSession(e){ this.setData({ sessionId: e.currentTarget.dataset.id }); },
+
+
+
+  // ====== C. 报告填写 ======
+
+  onDeduct(e){ this.setData({ deduct: Number(e.detail.value || 0) }); },
+
+  onComment(e){ this.setData({ comment: e.detail.value }); },
+
+  pickRPE(e){ this.setData({ RPE: Number(e.currentTarget.dataset.v) }); },
+
+
+
+  // ====== D. 搜索动作库 ======
+
+  onKey(e){ this.setData({ key: e.detail.value.trim() }); },
+
+  onMuscleChange(e){ this.setData({ muscleIdx: Number(e.detail.value) }); },
+
+  search(){
+
+    wx.showLoading({ title:'搜索中' });
+
+    const muscle = this.data.muscleIdx === 0 ? "" : this.data.muscles[this.data.muscleIdx];
+
+    wx.cloud.callFunction({
+
+      name:'catalog_search',
+
+      data:{ key:this.data.key, muscle, page:0, pageSize:20 }
+
+    }).then(r=>{
+
+      this.setData({ results: r.result?.list || [], hasMore: !!r.result?.hasMore, page: 0 });
+
+      if (!(r.result?.list || []).length) wx.showToast({ icon:'none', title:'没有匹配的动作' });
+
+    }).catch(err=>{
+
+      console.error(err);
+
+      wx.showToast({ icon:'none', title:(err.message||'搜索失败').slice(0,17) });
+
+    }).finally(()=> wx.hideLoading());
+
+  },
+
+
+
+  addOne(e){
+
+    const code = e.currentTarget.dataset.code;
+
+    const found = this.data.results.find(x => x.code === code);
+
+    if (!found) return;
+
+    if (this.data.selected.some(x => x.code === code)) return wx.showToast({ icon:'none', title:'已在已选中' });
+
+    const item = {
+
+      code: found.code, name: found.name, unit: found.unit,
+
+      sets: 3, reps: found.unit === 'sec' ? 1 : 8,
+
+      load: Number(found.defaultLoad || 0), notes:''
+
+    };
+
+    this.setData({ selected: this.data.selected.concat(item) });
+
+  },
+
+  removeOne(e){ this.setData({ selected: this.data.selected.filter(x => x.code !== e.currentTarget.dataset.code) }); },
+
+  editItem(e){
+
+    const { code, field } = e.currentTarget.dataset;
+
+    const val = field === 'notes' ? e.detail.value : Number(e.detail.value || 0);
+
+    const arr = this.data.selected.map(x => x.code === code ? { ...x, [field]: val } : x);
+
+    this.setData({ selected: arr });
+
+  },
+
+
+
+  // ====== E. 提交 ======
+
+  submit(){
+
+    const { chosenUser, sessionId, selected, deduct, comment, RPE } = this.data;
+
+    if (!chosenUser.userId) return wx.showToast({ icon:'none', title:'请先选择学员' });
+
+    if (!sessionId)       return wx.showToast({ icon:'none', title:'请先选择课程' });
+
+    if (!selected.length) return wx.showToast({ icon:'none', title:'请先添加动作' });
+
+
+
+    const report = { coachId: 'coach_001', items: selected, RPE, comment };
+
+    wx.showLoading({ title:'提交中' });
+
+    wx.cloud.callFunction({
+
+      name:'report_and_deduct',
+
+      data:{ sessionId, report, deductAmount: Number(deduct) }
+
+    }).then(r=>{
+
+      wx.hideLoading();
+
+      wx.showToast({ title: '已提交' });
+
+      this.setData({ selected: [], comment:'', sessionId:'' });
+
+    }).catch(err=>{
+
+      wx.hideLoading();
+
+      console.error(err);
+
+      wx.showToast({ icon:'none', title:(err.message||'提交失败').slice(0,17) });
+
+    });
+
+  },
+
+
+
+  // 小工具
+
+  fmt(iso){ const d=new Date(iso); const p=n=>n<10?'0'+n:n; return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; },
+
+  statusText(s){ return s==='pending'?'待确认':(s==='confirmed'?'已确认':'已完成'); }
+
+});

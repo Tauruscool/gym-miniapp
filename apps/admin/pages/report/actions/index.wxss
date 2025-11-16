@@ -1,0 +1,278 @@
+.page {
+
+  min-height: 100vh;
+
+  background: #f5f5f5;
+
+  padding: 24rpx;
+
+  box-sizing: border-box;
+
+}
+
+.card {
+
+  background: #ffffff;
+
+  border-radius: 24rpx;
+
+  padding: 24rpx;
+
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.04);
+
+}
+
+.card-title {
+
+  font-size: 32rpx;
+
+  font-weight: 600;
+
+  margin-bottom: 16rpx;
+
+}
+
+/* 中间左右布局：高度根据内容自动，但给个最小高度避免太瘦 */
+
+.layout {
+
+  display: flex;
+
+  margin-top: 8rpx;
+
+  margin-bottom: 24rpx;
+
+  min-height: 520rpx;
+
+}
+
+/* 左侧分类 */
+
+.left-pane {
+
+  width: 200rpx;
+
+  background: #f9fafb;
+
+  border-radius: 16rpx;
+
+  padding: 8rpx 0;
+
+  box-sizing: border-box;
+
+}
+
+.group-item {
+
+  padding: 16rpx 12rpx;
+
+  font-size: 24rpx;
+
+  color: #6b7280;
+
+  display: flex;
+
+  align-items: center;           /* 垂直居中文字 */
+
+}
+
+.group-item--active {
+
+  background: #111827;
+
+  color: #ffffff;
+
+}
+
+/* 右侧动作列表 */
+
+.right-pane {
+
+  flex: 1;
+
+  margin-left: 16rpx;
+
+}
+
+/* 搜索行 */
+
+.search-row {
+
+  display: flex;
+
+  margin-bottom: 12rpx;
+
+}
+
+.search-input {
+
+  flex: 1;
+
+  height: 64rpx;
+
+  background: #f3f4f6;
+
+  border-radius: 999rpx;
+
+  padding: 0 20rpx;
+
+  font-size: 24rpx;
+
+}
+
+.search-btn {
+
+  margin-left: 12rpx;
+
+  padding: 0 24rpx;
+
+  height: 64rpx;
+
+  border-radius: 999rpx;
+
+  background: #111827;
+
+  color: #ffffff;
+
+  font-size: 24rpx;
+
+  border: none;
+
+  display: flex;                 /* 文字水平垂直居中 */
+
+  align-items: center;
+
+  justify-content: center;
+
+}
+
+.create-row {
+
+  display: flex;
+
+  justify-content: flex-end;
+
+  margin-bottom: 8rpx;
+
+}
+
+.create-btn {
+
+  padding: 6rpx 20rpx;
+
+  border-radius: 999rpx;
+
+  border: 1px solid #d1d5db;
+
+  background: #ffffff;
+
+  font-size: 22rpx;
+
+  color: #111827;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+}
+
+.action-row {
+
+  display: flex;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  padding: 16rpx 12rpx;
+
+  border-bottom: 1px solid #e5e7eb;
+
+}
+
+.action-main {
+
+  flex: 1;
+
+}
+
+.action-name {
+
+  font-size: 26rpx;
+
+  color: #111827;
+
+}
+
+.action-group {
+
+  font-size: 22rpx;
+
+  color: #6b7280;
+
+}
+
+.action-check {
+
+  width: 32rpx;
+
+  height: 32rpx;
+
+  border-radius: 999rpx;
+
+  border: 2rpx solid #d1d5db;
+
+}
+
+.action-check--on {
+
+  background: #111827;
+
+  border-color: #111827;
+
+}
+
+.hint {
+
+  font-size: 24rpx;
+
+  color: #6b7280;
+
+  margin-top: 16rpx;
+
+}
+
+/* 底部按钮：在卡片内部，整体像一个对话框 */
+
+.footer {
+
+  margin-top: 12rpx;
+
+}
+
+.btn-primary {
+
+  width: 100%;
+
+  border-radius: 999rpx;
+
+  background: #16a34a;
+
+  color: #ffffff;
+
+  font-size: 28rpx;
+
+  padding: 18rpx 0;
+
+  border: none;
+
+  display: flex;
+
+  align-items: center;           /* 居中文本 */
+
+  justify-content: center;
+
+}
+

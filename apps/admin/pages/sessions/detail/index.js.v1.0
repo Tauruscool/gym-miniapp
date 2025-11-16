@@ -1,0 +1,45 @@
+// apps/admin/pages/sessions/detail/index.js
+
+Page({
+  data: {
+    id: '',
+    title: '',
+    status: '',
+    start: '',
+    end: '',
+    phone: '',
+    statusText: ''
+  },
+  onLoad(options) {
+    const status = options.status || ''
+    this.setData({
+      id: options.id || '',
+      title: decodeURIComponent(options.title || ''),
+      status,
+      start: decodeURIComponent(options.start || ''),
+      end: decodeURIComponent(options.end || ''),
+      phone: options.phone || '',
+      statusText: this.mapStatus(status)
+    })
+  },
+  mapStatus(s) {
+    if (s === 'pending') return '待确认'
+    if (s === 'confirmed') return '已确认'
+    if (s === 'done') return '已完成'
+    return '未知'
+  },
+  goEditReport() {
+    const { id, phone } = this.data
+    // 提前把 sessionId / phone 传给报告页，后续在报告页用来自动选中
+    wx.navigateTo({
+      url: `/pages/report/report?sessionId=${id}&phone=${phone}`
+    })
+  },
+  goViewReport() {
+    const { id, phone } = this.data
+    wx.navigateTo({
+      url: `/pages/report/report?sessionId=${id}&phone=${phone}&mode=view`
+    })
+  }
+})
+

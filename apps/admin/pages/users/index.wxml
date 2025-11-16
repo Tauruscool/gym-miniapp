@@ -1,0 +1,26 @@
+<view class="page">
+  <view class="card">
+    <view class="card-title">学员管理</view>
+    <view class="filter-row">
+      <input
+        class="ipt"
+        placeholder="按手机号 / 姓名搜索学员"
+        confirm-type="search"
+        bindinput="onQ"
+        bindconfirm="onSearch"
+        value="{{q}}"
+      />
+      <button class="btn" size="mini" bindtap="onSearch">搜索</button>
+    </view>
+    <view wx:if="{{loading}}" class="hint">正在加载...</view>
+    <view wx:if="{{!loading && list.length === 0}}" class="hint">暂无学员</view>
+    <view wx:for="{{list}}" wx:key="userId" class="row" bindtap="goDetail" data-id="{{item.userId}}">
+      <view class="u-main">
+        <view class="u-name">{{item.nickname || '未命名'}}</view>
+        <view class="u-phone">{{item.phone || '未绑定手机号'}}</view>
+      </view>
+      <!-- 预留：将来可以加"看课程 / 看钱包"等按钮 -->
+    </view>
+  </view>
+</view>
+

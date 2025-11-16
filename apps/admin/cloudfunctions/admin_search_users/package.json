@@ -1,0 +1,11 @@
+{
+  "name": "admin_search_users",
+  "version": "0.0.1",
+  "main": "index.js",
+  "license": "MIT",
+  "engines": { "node": ">=14" },
+  "dependencies": {
+    "wx-server-sdk": "^3.0.0"
+  }
+}
+

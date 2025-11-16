@@ -1,0 +1,43 @@
+<view class="wrap">
+
+  <view class="title">用户端 · 课程确认</view>
+
+  <view class="card">
+    <button bindtap="onLogin">一键登录（云函数）</button>
+  </view>
+
+  <view class="card">
+    <input class="ipt" placeholder="输入手机号（开发调试）" bindinput="onPhoneInput" value="{{phone}}"/>
+    <button class="btn" bindtap="bindPhone">绑定手机号（开发调试）</button>
+  </view>
+
+  <view class="card">
+    <button class="btn" bindtap="loadPending">刷新待确认课程</button>
+  </view>
+
+  <block wx:if="{{pending.length}}">
+    <view class="subtitle">待确认课程</view>
+    <block wx:for="{{pending}}" wx:key="_id">
+      <view class="item">
+        <view class="info">
+          <view class="name">{{item.title}}</view>
+          <view class="time">{{fmt(item.startAt)}} ~ {{fmt(item.endAt)}}</view>
+        </view>
+        <button class="small" data-id="{{item._id}}" bindtap="confirmOne">确认并加日历</button>
+      </view>
+    </block>
+  </block>
+
+  <view class="tips" wx:if="{{!pending.length}}">
+    暂无待确认课程，点击"刷新待确认课程"拉取最新。
+  </view>
+
+  <!-- 仍保留手动粘贴 sessionId 的老办法，备用 -->
+  <view class="card">
+    <input class="ipt" placeholder="粘贴管理员返回的 sessionId" bindinput="onSessionInput" value="{{sessionId}}" />
+    <button class="btn" bindtap="onConfirm">确认课程并加到日历</button>
+  </view>
+
+  <view class="tips">提示：开发者工具通常不支持写系统日历，真机调试更准确。</view>
+
+</view>

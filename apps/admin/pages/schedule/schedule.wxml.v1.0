@@ -1,0 +1,78 @@
+<!--pages/schedule/schedule.wxml-->
+<view class="container">
+  <view class="form-section">
+    <view class="form-item">
+      <text class="label">用户手机号</text>
+      <input 
+        class="input" 
+        type="text" 
+        placeholder="请输入手机号"
+        value="{{userPhone}}"
+        bindinput="onUserPhoneInput"
+      />
+    </view>
+
+    <view class="form-item">
+      <text class="label">开始时间</text>
+      <view class="datetime-group">
+        <picker 
+          mode="date"
+          value="{{startDate}}"
+          bindchange="onStartDateChange"
+        >
+          <view class="picker">
+            {{startDate || '选择日期'}}
+          </view>
+        </picker>
+        <picker 
+          mode="time"
+          value="{{startTime}}"
+          bindchange="onStartTimeChange"
+        >
+          <view class="picker">
+            {{startTime || '选择时间'}}
+          </view>
+        </picker>
+      </view>
+      <view class="datetime-result" wx:if="{{startAt}}">
+        {{startAt}}
+      </view>
+    </view>
+
+    <view class="form-item">
+      <text class="label">结束时间</text>
+      <view class="datetime-group">
+        <picker 
+          mode="date"
+          value="{{endDate}}"
+          bindchange="onEndDateChange"
+        >
+          <view class="picker">
+            {{endDate || '选择日期'}}
+          </view>
+        </picker>
+        <picker 
+          mode="time"
+          value="{{endTime}}"
+          bindchange="onEndTimeChange"
+        >
+          <view class="picker">
+            {{endTime || '选择时间'}}
+          </view>
+        </picker>
+      </view>
+      <view class="datetime-result" wx:if="{{endAt}}">
+        {{endAt}}
+      </view>
+    </view>
+
+    <button class="submit-btn" bindtap="onCreateSession">创建待确认课程</button>
+  </view>
+
+  <!-- 显示 sessionId 区域 -->
+  <view class="result-section" wx:if="{{sessionId}}">
+    <view class="result-title">SessionId:</view>
+    <view class="result-content">{{sessionId}}</view>
+  </view>
+</view>
+
