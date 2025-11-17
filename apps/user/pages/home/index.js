@@ -44,8 +44,8 @@ Page({
       await wx.cloud.callFunction({ name: 'auth_login' });  // 确保 users 落库
       await this.refreshPending();
     } catch (e) {
-      console.error('bootstrap error', e);
-      wx.showToast({ title: '初始化失败', icon: 'none' });
+      console.error('auth_login / bootstrap error', { err: e })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       this.setData({ loading: false });
     }
@@ -70,8 +70,12 @@ Page({
       });
       console.log('pending sessions:', list);
     } catch (e) {
-      console.error('refreshPending error', e);
-      wx.showToast({ title: '刷新失败', icon: 'none' });
+      const { q, startDate, endDate } = this.data
+      console.error('user_list_pending_sessions error', {
+        data: { q, startDate, endDate },
+        err: e
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       this.setData({ loading: false });
       wx.stopPullDownRefresh && wx.stopPullDownRefresh();
@@ -91,8 +95,8 @@ Page({
         this.refreshPending();
       })
       .catch(err => {
-        console.error(err);
-        wx.showToast({ icon: "error", title: "登录失败" });
+        console.error('auth_login error', { err })
+        wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
       });
   },
 
@@ -104,8 +108,12 @@ Page({
     wx.cloud.callFunction({ name:'user_bind_phone', data:{ phone } })
       .then(()=> wx.showToast({ title:'绑定成功' }))
       .catch(err=>{
-        console.error(err);
-        wx.showToast({ icon:'none', title: err.message || '绑定失败' });
+        const { phone } = this.data
+        console.error('user_bind_phone error', {
+          data: { phone },
+          err
+        })
+        wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
       });
   },
 
@@ -147,8 +155,11 @@ Page({
         this.setData({ pending: rest });
       })
       .catch(err => {
-        console.error(err);
-        wx.showToast({ icon: "none", title: err.message || "确认失败" });
+        console.error('confirm_session error', {
+          data: { sessionId },
+          err
+        })
+        wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
       });
   },
 

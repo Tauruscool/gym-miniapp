@@ -186,8 +186,12 @@ Page({
         segments
       })
     } catch (err) {
-      console.error('load all sessions error', err)
-      wx.showToast({ title: '加载课程表失败', icon: 'none' })
+      const { selectedDate, status } = this.data
+      console.error('admin_list_all_sessions error', {
+        data: { date: selectedDate, status },
+        err
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       this.setData({ loading: false })
     }

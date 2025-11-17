@@ -1,4 +1,18 @@
 // file: apps/admin/README.md
+## 快速索引（健身/饮食双端小程序）
+
+
+
+- [云开发 quickstart](#云开发-quickstart)
+
+- [页面更新记录（用户端 home 页面）](#页面更新记录)
+
+- [云函数列表](#云函数列表)
+
+- [Changelog](#changelog)
+
+---
+
 # 云开发 quickstart
 
 这是云开发的快速启动指引，其中演示了如何上手使用云开发的三大基础能力：
@@ -805,6 +819,94 @@ wx.cloud.callFunction({
 ---
 
 ## Changelog
+
+### 2025-11-17 20:41:42 CST — report 页 submit() 参数结构调整，适配新版 report_and_deduct
+- **fix(report)**: 调整管理端训练报告页 `submit()` 方法的参数结构，适配新版 `report_and_deduct` 云函数
+- **变更内容**：
+  - 修改 `submit()` 方法：将参数从嵌套的 `{ sessionId, report, deductAmount }` 改为扁平结构 `{ sessionId, userId, items, RPE, comment, amount }`
+  - 参数映射：`userId` = `chosenUserId`，`items` = `selected`，`amount` = `Number(deduct || 0)`
+  - 优化错误日志：统一错误日志结构，包含完整的请求参数信息
+  - 新增通用调用封装：创建 `apps/admin/utils/cloud.js`，提供 `callCloud()` 函数用于统一错误处理和日志记录（可选使用）
+- **影响范围**：管理端训练报告页的提交功能，与云函数 `report_and_deduct` 的参数格式完全对齐
+- **回滚方案**：
+  1. 恢复 `report.js.v2.4` 为 `report.js`
+  2. 删除 `apps/admin/utils/cloud.js`（如果已使用）
+- **备份文件**：`report.js.v2.4`（已备份 v2.4 版本）
+- **新增文件**：`apps/admin/utils/cloud.js`（通用云函数调用封装工具）
+
+### 2025-11-16 20:57:59 CST — P1：用户端报告体验补完
+- **feat(cloud)**: 云函数 `user_get_report` 增加 session 信息拼接
+- **feat(ui)**: 用户端报告详情页显示课程标题和时间
+- **变更内容**：
+  - **cloudfunctions/user_get_report/index.js**：
+    - 新增 session 信息查询：当报告包含 sessionId 时，自动查询 sessions 表获取课程信息
+    - 返回结构变更：从 `{ report }` 改为 `{ report, session }`
+    - session 信息包含：`_id`、`title`、`startAt`、`endAt`
+    - 容错处理：支持 tenantId 校验，如果两边都有 tenantId 则要求一致；否则仅作为显示使用
+    - 错误处理：session 查询失败时返回 null，不影响报告返回
+  - **pages/reports/detail/index.js**（user 端）：
+    - 新增 `session` 和 `sessionLabel` 数据字段
+    - 新增 `makeSessionLabel()` 方法：将 session 信息格式化为人类可读的文案（如"课程：深蹲训练 · 14:00-15:00"）
+    - 优化 `fetch()` 方法：接收云函数返回的 session 信息，并生成 sessionLabel
+    - 时间格式化：支持将 ISO 格式时间转换为 "HH:mm" 格式显示
+    - 错误处理：优化错误提示文案为"请求失败，请稍后重试"
+  - **pages/reports/detail/index.wxml**（user 端）：
+    - 优化课程信息显示：使用 `sessionLabel` 显示格式化的课程信息，无 session 时显示 sessionId 或"—"
+- **影响范围**：
+  - 用户端报告详情页：现在可以显示课程标题和时间，信息更完整
+  - 云函数返回结构：从 `{ report }` 改为 `{ report, session }`，前端需要适配
+- **回滚方案**：
+  - 云函数：恢复 `index.js.v1.1` 文件，重新部署云函数
+  - 前端：恢复 `index.js.v1.0` 和 `index.wxml` 到上一个版本
+- **备份文件**：
+  - `user_get_report/index.js.v1.1`（已备份 v1.1 版本）
+  - `reports/detail/index.js.v1.0`（已备份 v1.0 版本）
+- **测试点**：
+  - 验证云函数返回：包含 `report` 和 `session` 字段
+  - 验证 session 信息：能正确查询并返回课程标题和时间
+  - 验证时间格式化：ISO 格式时间能正确转换为 "HH:mm" 格式
+  - 验证 sessionLabel：能正确生成"课程：标题 · 开始时间-结束时间"格式
+  - 验证容错处理：session 不存在或查询失败时不影响报告显示
+  - 验证 tenantId 校验：不同租户的课程不会显示给其他租户用户
+
+### 2025-11-16 20:49:49 CST — P0：tenantId 校验补齐（云函数）
+- **feat(cloud)**: 为 admin_update_session、admin_delete_session、report_and_deduct 三个云函数添加 tenantId 校验
+- **变更内容**：
+  - **cloudfunctions/admin_update_session/index.js**：
+    - 新增 `getAdminTenantId()` 函数：从当前管理员的 openid 查询 users 表获取 tenantId
+    - 更新前校验：先查询课程是否存在且 tenantId 与管理员一致，不一致则抛出"课程不存在或无权限"错误
+    - 支持更新 title、status、startAt、endAt 字段，参数从 sessionId 改为 id
+    - 无变更时返回 `{ ok: true, reason: 'no_change' }`
+  - **cloudfunctions/admin_delete_session/index.js**：
+    - 新增 `getAdminTenantId()` 函数：从当前管理员的 openid 查询 users 表获取 tenantId
+    - 删除前校验：先查询课程是否存在且 tenantId 与管理员一致，不一致则抛出"课程不存在或无权限"错误
+    - 参数从 sessionId 改为 id
+  - **cloudfunctions/report_and_deduct/index.js**：
+    - 新增 `getAdminContext()` 函数：获取管理员的 coachId 和 tenantId
+    - 课程校验：必须同 tenant，且属于该学员（同时校验 tenantId 和 userId）
+    - 重构数据结构：报告使用扁平结构（items、RPE、comment、createdAt），与 user 端读取保持一致
+    - 参数变更：从 report、deductAmount 改为 items、RPE、comment、amount
+    - 钱包处理：支持钱包不存在时自动创建，扣费金额为 0 时不记录交易
+- **影响范围**：
+  - 管理端课程更新功能：只能更新同租户的课程，跨租户操作会被拒绝
+  - 管理端课程删除功能：只能删除同租户的课程，跨租户操作会被拒绝
+  - 管理端训练报告功能：只能为同租户学员创建报告，跨租户操作会被拒绝
+  - 数据安全：确保多租户环境下的数据隔离
+- **回滚方案**：
+  - admin_update_session：恢复 `index.js.v1.0` 文件，重新部署云函数
+  - admin_delete_session：恢复 `index.js.v1.0` 文件，重新部署云函数
+  - report_and_deduct：恢复 `index.js.v1.0` 文件，重新部署云函数
+- **备份文件**：
+  - `admin_update_session/index.js.v1.0`（已备份 v1.0 版本）
+  - `admin_delete_session/index.js.v1.0`（已备份 v1.0 版本）
+  - `report_and_deduct/index.js.v1.0`（已备份 v1.0 版本）
+- **测试点**：
+  - 验证 admin_update_session：不同租户管理员无法更新其他租户的课程
+  - 验证 admin_delete_session：不同租户管理员无法删除其他租户的课程
+  - 验证 report_and_deduct：不同租户管理员无法为其他租户学员创建报告
+  - 验证课程校验：课程必须同时满足 tenantId 和 userId 条件
+  - 验证钱包创建：学员没有钱包时自动创建
+  - 验证报告数据结构：报告使用扁平结构，与 user 端读取格式一致
 
 ### 2025-11-16 19:36:30 CST — 动作选择页 UI 优化 + 扩充预设动作 + 管理员新增动作功能
 - **feat(ui)**: 优化动作选择页面布局，将底部按钮收进卡片，优化文本居中和间距
@@ -2034,17 +2136,49 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
+const DEFAULT_TENANT_ID = 't_default'
+
+async function getAdminTenantId() {
+  const { OPENID } = cloud.getWXContext()
+
+  const uRes = await db.collection('users')
+    .where({ openid: OPENID })
+    .field({ tenantId: true })
+    .limit(1)
+    .get()
+
+  if (!uRes.data.length) {
+    throw new Error('admin_delete_session: 未找到管理员用户')
+  }
+
+  const doc = uRes.data[0]
+  return doc.tenantId || DEFAULT_TENANT_ID
+}
+
 exports.main = async (event) => {
-  const { sessionId } = event || {}
+  const { id } = event || {}
 
-  if (!sessionId) throw new Error('admin_delete_session: 缺少 sessionId')
+  if (!id) {
+    throw new Error('admin_delete_session: 缺少 id')
+  }
 
-  // 简单版本：直接删除。你要"软删"可以改成 status: 'canceled'
-  await db.collection('sessions').doc(sessionId).remove()
+  const tenantId = await getAdminTenantId()
+
+  const coll = db.collection('sessions')
+
+  const sRes = await coll
+    .where({ _id: id, tenantId })
+    .limit(1)
+    .get()
+
+  if (!sRes.data.length) {
+    throw new Error('admin_delete_session: 课程不存在或无权限')
+  }
+
+  await coll.doc(id).remove()
 
   return { ok: true }
 }
-
 
 
 // file: apps/admin/cloudfunctions/admin_delete_session/package.json
@@ -2418,29 +2552,62 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 
-exports.main = async (event) => {
-  const { sessionId, startAt, endAt } = event || {}
+const DEFAULT_TENANT_ID = 't_default'
 
-  if (!sessionId) throw new Error('admin_update_session: 缺少 sessionId')
+async function getAdminTenantId() {
+  const { OPENID } = cloud.getWXContext()
 
-  if (!startAt || !endAt) throw new Error('admin_update_session: 缺少时间')
+  const uRes = await db.collection('users')
+    .where({ openid: OPENID })
+    .field({ tenantId: true })
+    .limit(1)
+    .get()
 
-  const toISO = (t) => {
-    const d = new Date(t)
-    if (isNaN(+d)) throw new Error('admin_update_session: 非法时间')
-    return d.toISOString()
+  if (!uRes.data.length) {
+    throw new Error('admin_update_session: 未找到管理员用户')
   }
 
-  const sISO = toISO(startAt)
-  const eISO = toISO(endAt)
+  const doc = uRes.data[0]
+  return doc.tenantId || DEFAULT_TENANT_ID
+}
 
-  await db.collection('sessions').doc(sessionId).update({
-    data: { startAt: sISO, endAt: eISO }
-  })
+exports.main = async (event) => {
+  const { id, title, startAt, endAt, status } = event || {}
+
+  if (!id) {
+    throw new Error('admin_update_session: 缺少 id')
+  }
+
+  const tenantId = await getAdminTenantId()
+
+  const coll = db.collection('sessions')
+
+  // 先查一遍，确保 tenantId 一致
+  const sRes = await coll
+    .where({ _id: id, tenantId })
+    .limit(1)
+    .get()
+
+  if (!sRes.data.length) {
+    throw new Error('admin_update_session: 课程不存在或无权限')
+  }
+
+  const data = {}
+  if (typeof title === 'string') data.title = title
+  if (typeof status === 'string') data.status = status
+  if (startAt) data.startAt = startAt
+  if (endAt) data.endAt = endAt
+
+  if (!Object.keys(data).length) {
+    return { ok: true, reason: 'no_change' }
+  }
+
+  data.updatedAt = new Date().toISOString()
+
+  await coll.doc(id).update({ data })
 
   return { ok: true }
 }
-
 
 
 // file: apps/admin/cloudfunctions/admin_update_session/package.json
@@ -4272,125 +4439,137 @@ exports.main = async (event, context) => {
 }
 
 // file: apps/admin/cloudfunctions/report_and_deduct/index.js
-// report_and_deduct - 训练报告与扣款
-const cloud = require('wx-server-sdk');
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = cloud.database();
+const cloud = require('wx-server-sdk')
 
-exports.main = async (event, context) => {
-  const { sessionId, report, deductAmount } = event;
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
-  // 参数验证
-  if (!sessionId || !report || typeof deductAmount !== 'number') {
-    throw new Error('参数不完整：需要 sessionId, report, deductAmount');
+const db = cloud.database()
+
+const DEFAULT_TENANT_ID = 't_default'
+
+async function getAdminContext() {
+  const { OPENID } = cloud.getWXContext()
+
+  const uRes = await db.collection('users')
+    .where({ openid: OPENID })
+    .field({ userId: true, tenantId: true })
+    .limit(1)
+    .get()
+
+  if (!uRes.data.length) {
+    throw new Error('report_and_deduct: 未找到管理员用户')
   }
 
-  if (deductAmount < 0) {
-    throw new Error('扣款金额不能为负数');
+  const doc = uRes.data[0]
+  const coachId = doc.userId || doc._id
+  const tenantId = doc.tenantId || DEFAULT_TENANT_ID
+
+  return { coachId, tenantId }
+}
+
+exports.main = async (event) => {
+  const { sessionId, userId, items, RPE, comment, amount } = event || {}
+
+  if (!sessionId) throw new Error('report_and_deduct: 缺少 sessionId')
+  if (!userId) throw new Error('report_and_deduct: 缺少 userId')
+  if (!Array.isArray(items) || !items.length) {
+    throw new Error('report_and_deduct: 缺少动作明细')
   }
 
-  const tenantId = 't_default';
-  const now = new Date();
+  const { coachId, tenantId } = await getAdminContext()
 
-  try {
-    // 开启事务
-    const result = await db.runTransaction(async transaction => {
-      // 1. 查询会话
-      const sessionDoc = await transaction.collection('sessions').doc(sessionId).get();
-      
-      if (!sessionDoc.data) {
-        throw new Error('会话不存在');
-      }
+  const sessionsColl = db.collection('sessions')
+  const reportsColl = db.collection('training_reports')
+  const walletsColl = db.collection('wallets')
+  const txnsColl = db.collection('wallet_txns')
 
-      const session = sessionDoc.data;
+  // 1. 课程校验：必须同 tenant，且属于该学员
+  const sRes = await sessionsColl
+    .where({ _id: sessionId, userId, tenantId })
+    .limit(1)
+    .get()
 
-      if (session.status === 'done') {
-        throw new Error('会话已完成，无法重复操作');
-      }
-
-      const userId = session.userId;
-
-      // 2. 查询钱包
-      const walletQuery = await transaction.collection('wallets')
-        .where({
-          userId: userId,
-          tenantId: tenantId
-        })
-        .get();
-
-      if (walletQuery.data.length === 0) {
-        throw new Error('用户钱包不存在');
-      }
-
-      const wallet = walletQuery.data[0];
-      const walletId = wallet._id;
-
-      // 3. 检查余额
-      if (wallet.balance < deductAmount) {
-        throw new Error('余额不足');
-      }
-
-      // 4. 更新钱包余额
-      const newBalance = wallet.balance - deductAmount;
-      await transaction.collection('wallets')
-        .doc(walletId)
-        .update({
-          data: {
-            balance: newBalance,
-            updatedAt: now
-          }
-        });
-
-      // 5. 写入训练报告
-      const reportResult = await transaction.collection('training_reports').add({
-        data: {
-          sessionId: sessionId,
-          userId: userId,
-          tenantId: tenantId,
-          report: report,
-          createdAt: now,
-          updatedAt: now
-        }
-      });
-
-      // 6. 记录钱包交易
-      await transaction.collection('wallet_txns').add({
-        data: {
-          walletId: walletId,
-          userId: userId,
-          tenantId: tenantId,
-          type: 'deduct',
-          amount: deductAmount,
-          balanceBefore: wallet.balance,
-          balanceAfter: newBalance,
-          relatedId: sessionId,
-          relatedType: 'session',
-          remark: `训练会话扣款: ${session.title || sessionId}`,
-          createdAt: now
-        }
-      });
-
-      // 7. 更新会话状态为 done
-      await transaction.collection('sessions')
-        .doc(sessionId)
-        .update({
-          data: {
-            status: 'done',
-            updatedAt: now
-          }
-        });
-
-      return {
-        ok: true,
-        balance: newBalance
-      };
-    });
-
-    return result;
-  } catch (error) {
-    throw new Error(`处理失败: ${error.message}`);
+  if (!sRes.data.length) {
+    throw new Error('report_and_deduct: 课程不存在或无权限')
   }
-};
+
+  const now = new Date().toISOString()
+  const safeAmount = Number(amount) || 0
+
+  // 2. 钱包 & 扣费
+  const wRes = await walletsColl
+    .where({ userId, tenantId })
+    .limit(1)
+    .get()
+
+  let wallet = wRes.data[0]
+  let newBalance
+
+  if (!wallet) {
+    wallet = {
+      userId,
+      tenantId,
+      balance: 0,
+      createdAt: now
+    }
+    if (safeAmount !== 0) {
+      wallet.balance = wallet.balance - safeAmount
+    }
+    const addRes = await walletsColl.add({
+      data: { ...wallet, updatedAt: now }
+    })
+    wallet._id = addRes._id
+    newBalance = wallet.balance
+  } else {
+    const old = Number(wallet.balance) || 0
+    newBalance = safeAmount !== 0 ? old - safeAmount : old
+    await walletsColl.doc(wallet._id).update({
+      data: { balance: newBalance, updatedAt: now }
+    })
+  }
+
+  if (safeAmount !== 0) {
+    await txnsColl.add({
+      data: {
+        userId,
+        tenantId,
+        amount: -Math.abs(safeAmount),
+        type: 'deduct',
+        sessionId,
+        createdAt: now
+      }
+    })
+  }
+
+  // 3. 写训练报告（扁平结构，和 user 端读取保持一致）
+  const reportDoc = {
+    sessionId,
+    userId,
+    coachId,
+    tenantId,
+    items,
+    RPE: typeof RPE === 'number' ? RPE : (RPE != null ? Number(RPE) : null),
+    comment: comment || '',
+    createdAt: now
+  }
+
+  const rRes = await reportsColl.add({ data: reportDoc })
+
+  // 4. 课程状态置 done
+  await sessionsColl.doc(sessionId).update({
+    data: {
+      status: 'done',
+      updatedAt: now
+    }
+  })
+
+  return {
+    ok: true,
+    reportId: rRes._id,
+    balance: newBalance,
+    sessionStatus: 'done'
+  }
+}
 
 
 // file: apps/admin/cloudfunctions/report_and_deduct/package.json
@@ -4640,10 +4819,31 @@ exports.main = async (event) => {
     throw new Error('user_get_report: 无权限或报告不存在')
   }
 
-  // 可选：你想的话，可以这里再把 session 信息一并查出来拼上去
-  // 例如：查 sessions 集合，把 title / 时间塞到 report.sessionInfo 里
+  // 3. 课程信息（标题 + 时间），容错处理 tenantId
+  let sessionInfo = null
+  if (report.sessionId) {
+    const sRes = await db.collection('sessions')
+      .doc(report.sessionId)
+      .get()
+      .catch(() => null)
+    if (sRes && sRes.data) {
+      const s = sRes.data
+      // 如果两边都有 tenantId，则要求一致；否则仅作为显示使用
+      if (!tenantId || !s.tenantId || s.tenantId === tenantId) {
+        sessionInfo = {
+          _id: s._id,
+          title: s.title || '',
+          startAt: s.startAt || '',
+          endAt: s.endAt || ''
+        }
+      }
+    }
+  }
 
-  return { report }
+  return {
+    report,
+    session: sessionInfo
+  }
 }
 
 
@@ -6168,9 +6368,12 @@ Page({
 
     }).catch(err=>{
 
-      console.error(err);
-
-      wx.showToast({ icon:'none', title:(err.message||'搜索失败').slice(0,17) });
+      const { userQ } = this.data
+      console.error('admin_search_users error', {
+        data: { q: userQ },
+        err
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
 
     }).finally(()=> wx.hideLoading());
 
@@ -6294,9 +6497,12 @@ Page({
 
     }).catch(err=>{
 
-      console.error(err);
-
-      wx.showToast({ icon:'none', title:(err.message||'加载失败').slice(0,17) });
+      const { chosenUserId, statusIdx, onlyFuture } = this.data
+      console.error('admin_list_sessions error', {
+        data: { userId: chosenUserId, statusIdx, onlyFuture },
+        err
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
 
     }).finally(()=> wx.hideLoading());
 
@@ -6356,9 +6562,12 @@ Page({
 
     }).catch(err=>{
 
-      console.error(err);
-
-      wx.showToast({ icon:'none', title:(err.message||'搜索失败').slice(0,17) });
+      const { key, muscleIdx } = this.data
+      console.error('catalog_search error', {
+        data: { key, muscleIdx },
+        err
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
 
     }).finally(()=> wx.hideLoading());
 
@@ -6494,37 +6703,89 @@ Page({
 
     const { chosenUserId, sessionId, selected, deduct, comment, RPE } = this.data;
 
-    if (!chosenUserId)   return wx.showToast({ icon:'none', title:'请先选择学员' });
+    if (!chosenUserId)    return wx.showToast({ icon: 'none', title: '请先选择学员' });
 
-    if (!sessionId)      return wx.showToast({ icon:'none', title:'请先选择课程' });
+    if (!sessionId)       return wx.showToast({ icon: 'none', title: '请先选择课程' });
 
-    if (!selected.length)return wx.showToast({ icon:'none', title:'请先添加动作' });
+    if (!selected.length) return wx.showToast({ icon: 'none', title: '请先添加动作' });
 
-    const report = { coachId:'coach_001', items:selected, RPE, comment };
+    const amount = Number(deduct || 0);
 
-    wx.showLoading({ title:'提交中' });
+    wx.showLoading({ title: '提交中' });
 
     wx.cloud.callFunction({
 
-      name:'report_and_deduct',
+      name: 'report_and_deduct',
 
-      data:{ sessionId, report, deductAmount: Number(deduct||0) }
+      data: {
 
-    }).then(()=>{
+        sessionId,
+
+        userId: chosenUserId,
+
+        items: selected,       // 这里直接传选中的动作数组，结构与云函数的 items 一致
+
+        RPE,
+
+        comment,
+
+        amount
+
+      }
+
+    }).then(res => {
 
       wx.hideLoading();
 
-      wx.showToast({ title:'已提交' });
+      wx.showToast({ title: '已提交' });
 
-      this.setData({ selected: [], comment:'', sessionId:'' });
+      // 保留学员和课程，只清空本次报告相关字段（沿用你现在的逻辑）
 
-    }).catch(err=>{
+      this.setData({
+
+        selected: [],
+
+        comment: '',
+
+        sessionId: ''   // 如果你希望保留 sessionId 方便连续填，可以考虑不清空
+
+      });
+
+    }).catch(err => {
 
       wx.hideLoading();
 
-      console.error(err);
+      // 统一的错误日志结构 + 友好 toast
 
-      wx.showToast({ icon:'none', title:(err.message||'提交失败').slice(0,17) });
+      console.error('report_and_deduct error', {
+
+        data: {
+
+          sessionId,
+
+          userId: chosenUserId,
+
+          amount: deduct,
+
+          itemsCount: selected?.length || 0,
+
+          RPE,
+
+          comment
+
+        },
+
+        err
+
+      });
+
+      wx.showToast({
+
+        title: '请求失败，请稍后重试',
+
+        icon: 'none'
+
+      });
 
     });
 
@@ -7365,8 +7626,12 @@ Page({
       })
       wx.showToast({ title: '已保存', icon: 'success' })
     } catch (e) {
-      console.error('saveTime error', e)
-      wx.showToast({ title: '保存失败', icon: 'none' })
+      const { id, startDate, startTime, endDate, endTime } = this.data
+      console.error('admin_update_session error', {
+        data: { sessionId: id, startAt: `${startDate} ${startTime}`, endAt: `${endDate} ${endTime}` },
+        err: e
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       wx.hideLoading()
     }
@@ -7400,9 +7665,13 @@ Page({
             wx.navigateBack()
           }, 500)
         } catch (e) {
-          console.error('deleteSession error', e)
+          const { id } = this.data
+          console.error('admin_delete_session error', {
+            data: { sessionId: id },
+            err: e
+          })
           wx.hideLoading()
-          wx.showToast({ title: '删除失败', icon: 'none' })
+          wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
         }
       }
     })
@@ -8049,8 +8318,12 @@ Page({
         segments
       })
     } catch (err) {
-      console.error('load all sessions error', err)
-      wx.showToast({ title: '加载课程表失败', icon: 'none' })
+      const { selectedDate, status } = this.data
+      console.error('admin_list_all_sessions error', {
+        data: { date: selectedDate, status },
+        err
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       this.setData({ loading: false })
     }
@@ -8811,6 +9084,33 @@ Page({
 
 
 
+// file: apps/admin/utils/cloud.js
+// 通用云函数调用封装
+// 提供统一的错误处理和日志记录
+
+function callCloud(name, data, extraContext) {
+  return wx.cloud.callFunction({ name, data })
+    .then(res => res)
+    .catch(err => {
+      console.error(`${name} error`, {
+        data,
+        extra: extraContext || null,
+        err
+      });
+      wx.showToast({
+        title: '请求失败，请稍后重试',
+        icon: 'none'
+      });
+      throw err;
+    });
+}
+
+module.exports = {
+  callCloud
+};
+
+
+
 // file: apps/common/styles/theme.wxss
 /* 卡片容器 */
 
@@ -8857,6 +9157,20 @@ Page({
 
 
 // file: apps/user/README.md
+## 快速索引（健身/饮食双端小程序）
+
+
+
+- [云开发 quickstart](#云开发-quickstart)
+
+- [页面更新记录（用户端 home 页面）](#页面更新记录)
+
+- [云函数列表](#云函数列表)
+
+- [Changelog](#changelog)
+
+---
+
 # 云开发 quickstart
 
 这是云开发的快速启动指引，其中演示了如何上手使用云开发的三大基础能力：
@@ -8928,6 +9242,72 @@ Page({
 ---
 
 ## Changelog
+
+### 2025-11-16 21:01:20 CST — P1：用户端个人信息页增加"近期课程/报告"入口
+- **feat(ui)**: 用户端个人信息页新增快捷入口卡片，支持跳转到已确认课程和训练报告列表
+- **变更内容**：
+  - **pages/profile/index.js**：
+    - 新增 `goConfirmed()` 方法：跳转到 `/pages/sessions/confirmed/index`（查看已确认课程）
+    - 新增 `goReports()` 方法：跳转到 `/pages/reports/list/index`（查看训练报告）
+    - 统一错误提示文案：将 `console.error` 中的错误信息从 `'user_get_profile error'` 改为 `'loadProfile error'`，保持一致性
+  - **pages/profile/index.wxml**：
+    - 新增快捷入口卡片：在"我的信息"卡片下方添加"快捷入口"卡片
+    - 添加两个按钮：`查看已确认课程`（主按钮）和 `查看训练报告`（次按钮）
+    - 按钮绑定事件：`bindtap="goConfirmed"` 和 `bindtap="goReports"`
+  - **pages/profile/index.wxss**：
+    - 优化卡片间距：为 `.card` 添加 `margin-bottom: 24rpx`，确保卡片之间有间距
+    - 新增 `.actions-card` 样式：快捷入口卡片样式，`margin-top: 24rpx`
+    - 新增 `.actions` 样式：按钮容器样式，使用 `flex-direction: column` 垂直排列，`gap: 16rpx` 设置间距
+    - 新增 `.btn-primary` 样式：主按钮样式，深色背景（`#111827`）、白色文字、圆角（`999rpx`）
+    - 新增 `.btn-secondary` 样式：次按钮样式，浅色背景（`#f3f4f6`）、深色文字、圆角（`999rpx`）
+- **影响范围**：
+  - 用户端个人信息页：新增快捷入口功能，用户可以快速访问已确认课程和训练报告
+  - 用户体验：提升信息页面的导航便利性，减少页面跳转层级
+- **回滚方案**：
+  - 恢复 `index.js.v1.0`、删除新增的两个跳转方法
+  - 恢复 `index.wxml` 到上一个版本（移除快捷入口卡片）
+  - 恢复 `index.wxss` 到上一个版本（移除按钮样式）
+- **备份文件**：
+  - `pages/profile/index.js.v1.0`（已备份 v1.0 版本）
+- **测试点**：
+  - 验证跳转功能：点击"查看已确认课程"按钮能正确跳转到已确认课程列表页
+  - 验证跳转功能：点击"查看训练报告"按钮能正确跳转到训练报告列表页
+  - 验证样式显示：快捷入口卡片样式正确，按钮排列和间距符合设计
+  - 验证按钮样式：主按钮和次按钮的颜色、圆角、字体大小符合设计规范
+
+### 2025-11-16 20:57:59 CST — P1：用户端报告体验补完
+- **feat(cloud)**: 云函数 `user_get_report` 增加 session 信息拼接
+- **feat(ui)**: 用户端报告详情页显示课程标题和时间
+- **变更内容**：
+  - **cloudfunctions/user_get_report/index.js**（admin 端）：
+    - 新增 session 信息查询：当报告包含 sessionId 时，自动查询 sessions 表获取课程信息
+    - 返回结构变更：从 `{ report }` 改为 `{ report, session }`
+    - session 信息包含：`_id`、`title`、`startAt`、`endAt`
+    - 容错处理：支持 tenantId 校验，如果两边都有 tenantId 则要求一致；否则仅作为显示使用
+    - 错误处理：session 查询失败时返回 null，不影响报告返回
+  - **pages/reports/detail/index.js**：
+    - 新增 `session` 和 `sessionLabel` 数据字段
+    - 新增 `makeSessionLabel()` 方法：将 session 信息格式化为人类可读的文案（如"课程：深蹲训练 · 14:00-15:00"）
+    - 优化 `fetch()` 方法：接收云函数返回的 session 信息，并生成 sessionLabel
+    - 时间格式化：支持将 ISO 格式时间转换为 "HH:mm" 格式显示
+    - 错误处理：优化错误提示文案为"请求失败，请稍后重试"
+  - **pages/reports/detail/index.wxml**：
+    - 优化课程信息显示：使用 `sessionLabel` 显示格式化的课程信息，无 session 时显示 sessionId 或"—"
+- **影响范围**：
+  - 用户端报告详情页：现在可以显示课程标题和时间，信息更完整
+  - 云函数返回结构：从 `{ report }` 改为 `{ report, session }`，前端需要适配
+- **回滚方案**：
+  - 云函数：恢复 `index.js.v1.1` 文件（admin 端），重新部署云函数
+  - 前端：恢复 `index.js.v1.0` 和 `index.wxml` 到上一个版本
+- **备份文件**：
+  - `reports/detail/index.js.v1.0`（已备份 v1.0 版本）
+- **测试点**：
+  - 验证云函数返回：包含 `report` 和 `session` 字段
+  - 验证 session 信息：能正确查询并返回课程标题和时间
+  - 验证时间格式化：ISO 格式时间能正确转换为 "HH:mm" 格式
+  - 验证 sessionLabel：能正确生成"课程：标题 · 开始时间-结束时间"格式
+  - 验证容错处理：session 不存在或查询失败时不影响报告显示
+  - 验证 tenantId 校验：不同租户的课程不会显示给其他租户用户
 
 ### 2025-11-15 17:41:59 CST — 新增"我的信息"页面
 - **feat(ui)**: 新增 user 端"我的信息"页面，支持查看个人信息和余额
@@ -9070,8 +9450,8 @@ Page({
       await wx.cloud.callFunction({ name: 'auth_login' });  // 确保 users 落库
       await this.refreshPending();
     } catch (e) {
-      console.error('bootstrap error', e);
-      wx.showToast({ title: '初始化失败', icon: 'none' });
+      console.error('auth_login / bootstrap error', { err: e })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       this.setData({ loading: false });
     }
@@ -9096,8 +9476,12 @@ Page({
       });
       console.log('pending sessions:', list);
     } catch (e) {
-      console.error('refreshPending error', e);
-      wx.showToast({ title: '刷新失败', icon: 'none' });
+      const { q, startDate, endDate } = this.data
+      console.error('user_list_pending_sessions error', {
+        data: { q, startDate, endDate },
+        err: e
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       this.setData({ loading: false });
       wx.stopPullDownRefresh && wx.stopPullDownRefresh();
@@ -9117,8 +9501,8 @@ Page({
         this.refreshPending();
       })
       .catch(err => {
-        console.error(err);
-        wx.showToast({ icon: "error", title: "登录失败" });
+        console.error('auth_login error', { err })
+        wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
       });
   },
 
@@ -9130,8 +9514,12 @@ Page({
     wx.cloud.callFunction({ name:'user_bind_phone', data:{ phone } })
       .then(()=> wx.showToast({ title:'绑定成功' }))
       .catch(err=>{
-        console.error(err);
-        wx.showToast({ icon:'none', title: err.message || '绑定失败' });
+        const { phone } = this.data
+        console.error('user_bind_phone error', {
+          data: { phone },
+          err
+        })
+        wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
       });
   },
 
@@ -9173,8 +9561,11 @@ Page({
         this.setData({ pending: rest });
       })
       .catch(err => {
-        console.error(err);
-        wx.showToast({ icon: "none", title: err.message || "确认失败" });
+        console.error('confirm_session error', {
+          data: { sessionId },
+          err
+        })
+        wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
       });
   },
 
@@ -9271,11 +9662,17 @@ Page({
         user.gender === 'female' ? '女' : '未设置'
       this.setData({ info: user, wallet, genderText })
     } catch (e) {
-      console.error('loadProfile error', e)
-      wx.showToast({ title: '加载失败', icon: 'none' })
+      console.error('loadProfile error', { err: e })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       wx.hideLoading()
     }
+  },
+  goConfirmed() {
+    wx.navigateTo({ url: '/pages/sessions/confirmed/index' })
+  },
+  goReports() {
+    wx.navigateTo({ url: '/pages/reports/list/index' })
   }
 })
 
@@ -9302,6 +9699,13 @@ Page({
     <view class="row"><text class="label">次数余额</text><text class="value">{{info.timesBalance != null ? info.timesBalance : '-'}}</text></view>
     <view class="row"><text class="label">金额余额</text><text class="value">{{wallet.balance != null ? wallet.balance + ' 元' : '-'}}</text></view>
   </view>
+  <view class="card actions-card">
+    <view class="card-title">快捷入口</view>
+    <view class="actions">
+      <button class="btn-primary" bindtap="goConfirmed">查看已确认课程</button>
+      <button class="btn-secondary" bindtap="goReports">查看训练报告</button>
+    </view>
+  </view>
 </view>
 
 
@@ -9319,6 +9723,7 @@ Page({
   border-radius: 24rpx;
   padding: 32rpx;
   box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.04);
+  margin-bottom: 24rpx;
 }
 
 .card-title {
@@ -9343,32 +9748,87 @@ Page({
   color: #111827;
 }
 
+/* 新增 */
+.actions-card {
+  margin-top: 24rpx;
+}
+
+.actions {
+  margin-top: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.btn-primary,
+.btn-secondary {
+  border-radius: 999rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  border: none;
+}
+
+.btn-primary {
+  background: #111827;
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #111827;
+}
+
 
 
 // file: apps/user/pages/reports/detail/index.js
 Page({
-  data: { report: null, loading: false },
+  data: {
+    report: null,
+    session: null,
+    sessionLabel: '',
+    loading: false
+  },
   onLoad(q) {
-    this.id = q.id;
-    this.fetch();
+    this.id = q.id
+    this.fetch()
+  },
+  makeSessionLabel(session) {
+    if (!session) return ''
+    const title = session.title || '未命名课程'
+    const formatTime = (iso) => {
+      if (!iso) return ''
+      const d = new Date(iso)
+      if (Number.isNaN(+d)) return ''
+      const pad = (n) => (n < 10 ? '0' + n : '' + n)
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+    }
+    const start = formatTime(session.startAt)
+    const end = formatTime(session.endAt)
+    if (start && end) {
+      return `课程：${title} · ${start}-${end}`
+    }
+    return `课程：${title}`
   },
   async fetch() {
-    if (!this.id) return;
-    this.setData({ loading: true });
+    if (!this.id) return
+    this.setData({ loading: true })
     try {
       const { result } = await wx.cloud.callFunction({
         name: 'user_get_report',
         data: { reportId: this.id }
-      });
-      this.setData({ report: result?.report || null });
+      })
+      const report = result?.report || null
+      const session = result?.session || null
+      const sessionLabel = this.makeSessionLabel(session)
+      this.setData({ report, session, sessionLabel })
     } catch (e) {
-      console.error('fetch report detail error', e);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      console.error('user_get_report error', { id: this.id, err: e })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
-      this.setData({ loading: false });
+      this.setData({ loading: false })
     }
   }
-});
+})
 
 
 
@@ -9384,7 +9844,9 @@ Page({
 <block wx:if="{{report}}">
   <view class="section">
     <view class="section-title">报告详情</view>
-    <view class="helper">课程：{{report.sessionId}}</view>
+    <view class="helper">
+      {{sessionLabel || ('课程：' + (report.sessionId || '—'))}}
+    </view>
     <view class="helper">RPE：{{report.RPE}} ｜ 备注：{{report.comment || '无'}}</view>
   </view>
   <view class="section">
@@ -9444,8 +9906,12 @@ Page({
       });
       this.setData({ list: result?.list || [] });
     } catch (e) {
-      console.error('fetch reports error', e);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      const { q, createdFrom, createdTo } = this.data
+      console.error('user_list_reports error', {
+        data: { q, createdFrom, createdTo },
+        err: e
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       this.setData({ loading: false });
     }
@@ -9526,8 +9992,12 @@ Page({
       });
       this.setData({ list: result?.list || [] });
     } catch (e) {
-      console.error('fetch confirmed sessions error', e);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      const { q, startDate, endDate } = this.data
+      console.error('user_list_confirmed_sessions error', {
+        data: { q, startDate, endDate },
+        err: e
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       this.setData({ loading: false });
     }

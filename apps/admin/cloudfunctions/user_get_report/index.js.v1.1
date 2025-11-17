@@ -38,29 +38,9 @@ exports.main = async (event) => {
     throw new Error('user_get_report: 无权限或报告不存在')
   }
 
-  // 3. 课程信息（标题 + 时间），容错处理 tenantId
-  let sessionInfo = null
-  if (report.sessionId) {
-    const sRes = await db.collection('sessions')
-      .doc(report.sessionId)
-      .get()
-      .catch(() => null)
-    if (sRes && sRes.data) {
-      const s = sRes.data
-      // 如果两边都有 tenantId，则要求一致；否则仅作为显示使用
-      if (!tenantId || !s.tenantId || s.tenantId === tenantId) {
-        sessionInfo = {
-          _id: s._id,
-          title: s.title || '',
-          startAt: s.startAt || '',
-          endAt: s.endAt || ''
-        }
-      }
-    }
-  }
+  // 可选：你想的话，可以这里再把 session 信息一并查出来拼上去
+  // 例如：查 sessions 集合，把 title / 时间塞到 report.sessionInfo 里
 
-  return {
-    report,
-    session: sessionInfo
-  }
+  return { report }
 }
+

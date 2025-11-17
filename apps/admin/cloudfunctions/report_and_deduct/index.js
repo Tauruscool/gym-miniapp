@@ -1,119 +1,131 @@
-// report_and_deduct - 训练报告与扣款
-const cloud = require('wx-server-sdk');
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = cloud.database();
+const cloud = require('wx-server-sdk')
 
-exports.main = async (event, context) => {
-  const { sessionId, report, deductAmount } = event;
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
-  // 参数验证
-  if (!sessionId || !report || typeof deductAmount !== 'number') {
-    throw new Error('参数不完整：需要 sessionId, report, deductAmount');
+const db = cloud.database()
+
+const DEFAULT_TENANT_ID = 't_default'
+
+async function getAdminContext() {
+  const { OPENID } = cloud.getWXContext()
+
+  const uRes = await db.collection('users')
+    .where({ openid: OPENID })
+    .field({ userId: true, tenantId: true })
+    .limit(1)
+    .get()
+
+  if (!uRes.data.length) {
+    throw new Error('report_and_deduct: 未找到管理员用户')
   }
 
-  if (deductAmount < 0) {
-    throw new Error('扣款金额不能为负数');
+  const doc = uRes.data[0]
+  const coachId = doc.userId || doc._id
+  const tenantId = doc.tenantId || DEFAULT_TENANT_ID
+
+  return { coachId, tenantId }
+}
+
+exports.main = async (event) => {
+  const { sessionId, userId, items, RPE, comment, amount } = event || {}
+
+  if (!sessionId) throw new Error('report_and_deduct: 缺少 sessionId')
+  if (!userId) throw new Error('report_and_deduct: 缺少 userId')
+  if (!Array.isArray(items) || !items.length) {
+    throw new Error('report_and_deduct: 缺少动作明细')
   }
 
-  const tenantId = 't_default';
-  const now = new Date();
+  const { coachId, tenantId } = await getAdminContext()
 
-  try {
-    // 开启事务
-    const result = await db.runTransaction(async transaction => {
-      // 1. 查询会话
-      const sessionDoc = await transaction.collection('sessions').doc(sessionId).get();
-      
-      if (!sessionDoc.data) {
-        throw new Error('会话不存在');
-      }
+  const sessionsColl = db.collection('sessions')
+  const reportsColl = db.collection('training_reports')
+  const walletsColl = db.collection('wallets')
+  const txnsColl = db.collection('wallet_txns')
 
-      const session = sessionDoc.data;
+  // 1. 课程校验：必须同 tenant，且属于该学员
+  const sRes = await sessionsColl
+    .where({ _id: sessionId, userId, tenantId })
+    .limit(1)
+    .get()
 
-      if (session.status === 'done') {
-        throw new Error('会话已完成，无法重复操作');
-      }
-
-      const userId = session.userId;
-
-      // 2. 查询钱包
-      const walletQuery = await transaction.collection('wallets')
-        .where({
-          userId: userId,
-          tenantId: tenantId
-        })
-        .get();
-
-      if (walletQuery.data.length === 0) {
-        throw new Error('用户钱包不存在');
-      }
-
-      const wallet = walletQuery.data[0];
-      const walletId = wallet._id;
-
-      // 3. 检查余额
-      if (wallet.balance < deductAmount) {
-        throw new Error('余额不足');
-      }
-
-      // 4. 更新钱包余额
-      const newBalance = wallet.balance - deductAmount;
-      await transaction.collection('wallets')
-        .doc(walletId)
-        .update({
-          data: {
-            balance: newBalance,
-            updatedAt: now
-          }
-        });
-
-      // 5. 写入训练报告
-      const reportResult = await transaction.collection('training_reports').add({
-        data: {
-          sessionId: sessionId,
-          userId: userId,
-          tenantId: tenantId,
-          report: report,
-          createdAt: now,
-          updatedAt: now
-        }
-      });
-
-      // 6. 记录钱包交易
-      await transaction.collection('wallet_txns').add({
-        data: {
-          walletId: walletId,
-          userId: userId,
-          tenantId: tenantId,
-          type: 'deduct',
-          amount: deductAmount,
-          balanceBefore: wallet.balance,
-          balanceAfter: newBalance,
-          relatedId: sessionId,
-          relatedType: 'session',
-          remark: `训练会话扣款: ${session.title || sessionId}`,
-          createdAt: now
-        }
-      });
-
-      // 7. 更新会话状态为 done
-      await transaction.collection('sessions')
-        .doc(sessionId)
-        .update({
-          data: {
-            status: 'done',
-            updatedAt: now
-          }
-        });
-
-      return {
-        ok: true,
-        balance: newBalance
-      };
-    });
-
-    return result;
-  } catch (error) {
-    throw new Error(`处理失败: ${error.message}`);
+  if (!sRes.data.length) {
+    throw new Error('report_and_deduct: 课程不存在或无权限')
   }
-};
+
+  const now = new Date().toISOString()
+  const safeAmount = Number(amount) || 0
+
+  // 2. 钱包 & 扣费
+  const wRes = await walletsColl
+    .where({ userId, tenantId })
+    .limit(1)
+    .get()
+
+  let wallet = wRes.data[0]
+  let newBalance
+
+  if (!wallet) {
+    wallet = {
+      userId,
+      tenantId,
+      balance: 0,
+      createdAt: now
+    }
+    if (safeAmount !== 0) {
+      wallet.balance = wallet.balance - safeAmount
+    }
+    const addRes = await walletsColl.add({
+      data: { ...wallet, updatedAt: now }
+    })
+    wallet._id = addRes._id
+    newBalance = wallet.balance
+  } else {
+    const old = Number(wallet.balance) || 0
+    newBalance = safeAmount !== 0 ? old - safeAmount : old
+    await walletsColl.doc(wallet._id).update({
+      data: { balance: newBalance, updatedAt: now }
+    })
+  }
+
+  if (safeAmount !== 0) {
+    await txnsColl.add({
+      data: {
+        userId,
+        tenantId,
+        amount: -Math.abs(safeAmount),
+        type: 'deduct',
+        sessionId,
+        createdAt: now
+      }
+    })
+  }
+
+  // 3. 写训练报告（扁平结构，和 user 端读取保持一致）
+  const reportDoc = {
+    sessionId,
+    userId,
+    coachId,
+    tenantId,
+    items,
+    RPE: typeof RPE === 'number' ? RPE : (RPE != null ? Number(RPE) : null),
+    comment: comment || '',
+    createdAt: now
+  }
+
+  const rRes = await reportsColl.add({ data: reportDoc })
+
+  // 4. 课程状态置 done
+  await sessionsColl.doc(sessionId).update({
+    data: {
+      status: 'done',
+      updatedAt: now
+    }
+  })
+
+  return {
+    ok: true,
+    reportId: rRes._id,
+    balance: newBalance,
+    sessionStatus: 'done'
+  }
+}

@@ -10,5 +10,12 @@
     <view class="row"><text class="label">次数余额</text><text class="value">{{info.timesBalance != null ? info.timesBalance : '-'}}</text></view>
     <view class="row"><text class="label">金额余额</text><text class="value">{{wallet.balance != null ? wallet.balance + ' 元' : '-'}}</text></view>
   </view>
+  <view class="card actions-card">
+    <view class="card-title">快捷入口</view>
+    <view class="actions">
+      <button class="btn-primary" bindtap="goConfirmed">查看已确认课程</button>
+      <button class="btn-secondary" bindtap="goReports">查看训练报告</button>
+    </view>
+  </view>
 </view>
 

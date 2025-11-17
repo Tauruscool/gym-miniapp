@@ -32,8 +32,12 @@ Page({
       });
       this.setData({ list: result?.list || [] });
     } catch (e) {
-      console.error('fetch confirmed sessions error', e);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      const { q, startDate, endDate } = this.data
+      console.error('user_list_confirmed_sessions error', {
+        data: { q, startDate, endDate },
+        err: e
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       this.setData({ loading: false });
     }

@@ -1,3 +1,17 @@
+## 快速索引（健身/饮食双端小程序）
+
+
+
+- [云开发 quickstart](#云开发-quickstart)
+
+- [页面更新记录（用户端 home 页面）](#页面更新记录)
+
+- [云函数列表](#云函数列表)
+
+- [Changelog](#changelog)
+
+---
+
 # 云开发 quickstart
 
 这是云开发的快速启动指引，其中演示了如何上手使用云开发的三大基础能力：
@@ -804,6 +818,94 @@ wx.cloud.callFunction({
 ---
 
 ## Changelog
+
+### 2025-11-17 20:41:42 CST — report 页 submit() 参数结构调整，适配新版 report_and_deduct
+- **fix(report)**: 调整管理端训练报告页 `submit()` 方法的参数结构，适配新版 `report_and_deduct` 云函数
+- **变更内容**：
+  - 修改 `submit()` 方法：将参数从嵌套的 `{ sessionId, report, deductAmount }` 改为扁平结构 `{ sessionId, userId, items, RPE, comment, amount }`
+  - 参数映射：`userId` = `chosenUserId`，`items` = `selected`，`amount` = `Number(deduct || 0)`
+  - 优化错误日志：统一错误日志结构，包含完整的请求参数信息
+  - 新增通用调用封装：创建 `apps/admin/utils/cloud.js`，提供 `callCloud()` 函数用于统一错误处理和日志记录（可选使用）
+- **影响范围**：管理端训练报告页的提交功能，与云函数 `report_and_deduct` 的参数格式完全对齐
+- **回滚方案**：
+  1. 恢复 `report.js.v2.4` 为 `report.js`
+  2. 删除 `apps/admin/utils/cloud.js`（如果已使用）
+- **备份文件**：`report.js.v2.4`（已备份 v2.4 版本）
+- **新增文件**：`apps/admin/utils/cloud.js`（通用云函数调用封装工具）
+
+### 2025-11-16 20:57:59 CST — P1：用户端报告体验补完
+- **feat(cloud)**: 云函数 `user_get_report` 增加 session 信息拼接
+- **feat(ui)**: 用户端报告详情页显示课程标题和时间
+- **变更内容**：
+  - **cloudfunctions/user_get_report/index.js**：
+    - 新增 session 信息查询：当报告包含 sessionId 时，自动查询 sessions 表获取课程信息
+    - 返回结构变更：从 `{ report }` 改为 `{ report, session }`
+    - session 信息包含：`_id`、`title`、`startAt`、`endAt`
+    - 容错处理：支持 tenantId 校验，如果两边都有 tenantId 则要求一致；否则仅作为显示使用
+    - 错误处理：session 查询失败时返回 null，不影响报告返回
+  - **pages/reports/detail/index.js**（user 端）：
+    - 新增 `session` 和 `sessionLabel` 数据字段
+    - 新增 `makeSessionLabel()` 方法：将 session 信息格式化为人类可读的文案（如"课程：深蹲训练 · 14:00-15:00"）
+    - 优化 `fetch()` 方法：接收云函数返回的 session 信息，并生成 sessionLabel
+    - 时间格式化：支持将 ISO 格式时间转换为 "HH:mm" 格式显示
+    - 错误处理：优化错误提示文案为"请求失败，请稍后重试"
+  - **pages/reports/detail/index.wxml**（user 端）：
+    - 优化课程信息显示：使用 `sessionLabel` 显示格式化的课程信息，无 session 时显示 sessionId 或"—"
+- **影响范围**：
+  - 用户端报告详情页：现在可以显示课程标题和时间，信息更完整
+  - 云函数返回结构：从 `{ report }` 改为 `{ report, session }`，前端需要适配
+- **回滚方案**：
+  - 云函数：恢复 `index.js.v1.1` 文件，重新部署云函数
+  - 前端：恢复 `index.js.v1.0` 和 `index.wxml` 到上一个版本
+- **备份文件**：
+  - `user_get_report/index.js.v1.1`（已备份 v1.1 版本）
+  - `reports/detail/index.js.v1.0`（已备份 v1.0 版本）
+- **测试点**：
+  - 验证云函数返回：包含 `report` 和 `session` 字段
+  - 验证 session 信息：能正确查询并返回课程标题和时间
+  - 验证时间格式化：ISO 格式时间能正确转换为 "HH:mm" 格式
+  - 验证 sessionLabel：能正确生成"课程：标题 · 开始时间-结束时间"格式
+  - 验证容错处理：session 不存在或查询失败时不影响报告显示
+  - 验证 tenantId 校验：不同租户的课程不会显示给其他租户用户
+
+### 2025-11-16 20:49:49 CST — P0：tenantId 校验补齐（云函数）
+- **feat(cloud)**: 为 admin_update_session、admin_delete_session、report_and_deduct 三个云函数添加 tenantId 校验
+- **变更内容**：
+  - **cloudfunctions/admin_update_session/index.js**：
+    - 新增 `getAdminTenantId()` 函数：从当前管理员的 openid 查询 users 表获取 tenantId
+    - 更新前校验：先查询课程是否存在且 tenantId 与管理员一致，不一致则抛出"课程不存在或无权限"错误
+    - 支持更新 title、status、startAt、endAt 字段，参数从 sessionId 改为 id
+    - 无变更时返回 `{ ok: true, reason: 'no_change' }`
+  - **cloudfunctions/admin_delete_session/index.js**：
+    - 新增 `getAdminTenantId()` 函数：从当前管理员的 openid 查询 users 表获取 tenantId
+    - 删除前校验：先查询课程是否存在且 tenantId 与管理员一致，不一致则抛出"课程不存在或无权限"错误
+    - 参数从 sessionId 改为 id
+  - **cloudfunctions/report_and_deduct/index.js**：
+    - 新增 `getAdminContext()` 函数：获取管理员的 coachId 和 tenantId
+    - 课程校验：必须同 tenant，且属于该学员（同时校验 tenantId 和 userId）
+    - 重构数据结构：报告使用扁平结构（items、RPE、comment、createdAt），与 user 端读取保持一致
+    - 参数变更：从 report、deductAmount 改为 items、RPE、comment、amount
+    - 钱包处理：支持钱包不存在时自动创建，扣费金额为 0 时不记录交易
+- **影响范围**：
+  - 管理端课程更新功能：只能更新同租户的课程，跨租户操作会被拒绝
+  - 管理端课程删除功能：只能删除同租户的课程，跨租户操作会被拒绝
+  - 管理端训练报告功能：只能为同租户学员创建报告，跨租户操作会被拒绝
+  - 数据安全：确保多租户环境下的数据隔离
+- **回滚方案**：
+  - admin_update_session：恢复 `index.js.v1.0` 文件，重新部署云函数
+  - admin_delete_session：恢复 `index.js.v1.0` 文件，重新部署云函数
+  - report_and_deduct：恢复 `index.js.v1.0` 文件，重新部署云函数
+- **备份文件**：
+  - `admin_update_session/index.js.v1.0`（已备份 v1.0 版本）
+  - `admin_delete_session/index.js.v1.0`（已备份 v1.0 版本）
+  - `report_and_deduct/index.js.v1.0`（已备份 v1.0 版本）
+- **测试点**：
+  - 验证 admin_update_session：不同租户管理员无法更新其他租户的课程
+  - 验证 admin_delete_session：不同租户管理员无法删除其他租户的课程
+  - 验证 report_and_deduct：不同租户管理员无法为其他租户学员创建报告
+  - 验证课程校验：课程必须同时满足 tenantId 和 userId 条件
+  - 验证钱包创建：学员没有钱包时自动创建
+  - 验证报告数据结构：报告使用扁平结构，与 user 端读取格式一致
 
 ### 2025-11-16 19:36:30 CST — 动作选择页 UI 优化 + 扩充预设动作 + 管理员新增动作功能
 - **feat(ui)**: 优化动作选择页面布局，将底部按钮收进卡片，优化文本居中和间距

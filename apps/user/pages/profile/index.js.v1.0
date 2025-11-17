@@ -20,17 +20,11 @@ Page({
         user.gender === 'female' ? '女' : '未设置'
       this.setData({ info: user, wallet, genderText })
     } catch (e) {
-      console.error('loadProfile error', { err: e })
+      console.error('user_get_profile error', { err: e })
       wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       wx.hideLoading()
     }
-  },
-  goConfirmed() {
-    wx.navigateTo({ url: '/pages/sessions/confirmed/index' })
-  },
-  goReports() {
-    wx.navigateTo({ url: '/pages/reports/list/index' })
   }
 })
 

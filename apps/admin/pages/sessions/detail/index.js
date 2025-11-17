@@ -75,8 +75,12 @@ Page({
       })
       wx.showToast({ title: '已保存', icon: 'success' })
     } catch (e) {
-      console.error('saveTime error', e)
-      wx.showToast({ title: '保存失败', icon: 'none' })
+      const { id, startDate, startTime, endDate, endTime } = this.data
+      console.error('admin_update_session error', {
+        data: { sessionId: id, startAt: `${startDate} ${startTime}`, endAt: `${endDate} ${endTime}` },
+        err: e
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       wx.hideLoading()
     }
@@ -110,9 +114,13 @@ Page({
             wx.navigateBack()
           }, 500)
         } catch (e) {
-          console.error('deleteSession error', e)
+          const { id } = this.data
+          console.error('admin_delete_session error', {
+            data: { sessionId: id },
+            err: e
+          })
           wx.hideLoading()
-          wx.showToast({ title: '删除失败', icon: 'none' })
+          wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
         }
       }
     })

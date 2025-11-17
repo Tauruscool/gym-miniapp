@@ -1,0 +1,120 @@
+// report_and_deduct - 训练报告与扣款
+const cloud = require('wx-server-sdk');
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database();
+
+exports.main = async (event, context) => {
+  const { sessionId, report, deductAmount } = event;
+
+  // 参数验证
+  if (!sessionId || !report || typeof deductAmount !== 'number') {
+    throw new Error('参数不完整：需要 sessionId, report, deductAmount');
+  }
+
+  if (deductAmount < 0) {
+    throw new Error('扣款金额不能为负数');
+  }
+
+  const tenantId = 't_default';
+  const now = new Date();
+
+  try {
+    // 开启事务
+    const result = await db.runTransaction(async transaction => {
+      // 1. 查询会话
+      const sessionDoc = await transaction.collection('sessions').doc(sessionId).get();
+      
+      if (!sessionDoc.data) {
+        throw new Error('会话不存在');
+      }
+
+      const session = sessionDoc.data;
+
+      if (session.status === 'done') {
+        throw new Error('会话已完成，无法重复操作');
+      }
+
+      const userId = session.userId;
+
+      // 2. 查询钱包
+      const walletQuery = await transaction.collection('wallets')
+        .where({
+          userId: userId,
+          tenantId: tenantId
+        })
+        .get();
+
+      if (walletQuery.data.length === 0) {
+        throw new Error('用户钱包不存在');
+      }
+
+      const wallet = walletQuery.data[0];
+      const walletId = wallet._id;
+
+      // 3. 检查余额
+      if (wallet.balance < deductAmount) {
+        throw new Error('余额不足');
+      }
+
+      // 4. 更新钱包余额
+      const newBalance = wallet.balance - deductAmount;
+      await transaction.collection('wallets')
+        .doc(walletId)
+        .update({
+          data: {
+            balance: newBalance,
+            updatedAt: now
+          }
+        });
+
+      // 5. 写入训练报告
+      const reportResult = await transaction.collection('training_reports').add({
+        data: {
+          sessionId: sessionId,
+          userId: userId,
+          tenantId: tenantId,
+          report: report,
+          createdAt: now,
+          updatedAt: now
+        }
+      });
+
+      // 6. 记录钱包交易
+      await transaction.collection('wallet_txns').add({
+        data: {
+          walletId: walletId,
+          userId: userId,
+          tenantId: tenantId,
+          type: 'deduct',
+          amount: deductAmount,
+          balanceBefore: wallet.balance,
+          balanceAfter: newBalance,
+          relatedId: sessionId,
+          relatedType: 'session',
+          remark: `训练会话扣款: ${session.title || sessionId}`,
+          createdAt: now
+        }
+      });
+
+      // 7. 更新会话状态为 done
+      await transaction.collection('sessions')
+        .doc(sessionId)
+        .update({
+          data: {
+            status: 'done',
+            updatedAt: now
+          }
+        });
+
+      return {
+        ok: true,
+        balance: newBalance
+      };
+    });
+
+    return result;
+  } catch (error) {
+    throw new Error(`处理失败: ${error.message}`);
+  }
+};
+

@@ -1,3 +1,17 @@
+## 快速索引（健身/饮食双端小程序）
+
+
+
+- [云开发 quickstart](#云开发-quickstart)
+
+- [页面更新记录（用户端 home 页面）](#页面更新记录)
+
+- [云函数列表](#云函数列表)
+
+- [Changelog](#changelog)
+
+---
+
 # 云开发 quickstart
 
 这是云开发的快速启动指引，其中演示了如何上手使用云开发的三大基础能力：
@@ -69,6 +83,72 @@
 ---
 
 ## Changelog
+
+### 2025-11-16 21:01:20 CST — P1：用户端个人信息页增加"近期课程/报告"入口
+- **feat(ui)**: 用户端个人信息页新增快捷入口卡片，支持跳转到已确认课程和训练报告列表
+- **变更内容**：
+  - **pages/profile/index.js**：
+    - 新增 `goConfirmed()` 方法：跳转到 `/pages/sessions/confirmed/index`（查看已确认课程）
+    - 新增 `goReports()` 方法：跳转到 `/pages/reports/list/index`（查看训练报告）
+    - 统一错误提示文案：将 `console.error` 中的错误信息从 `'user_get_profile error'` 改为 `'loadProfile error'`，保持一致性
+  - **pages/profile/index.wxml**：
+    - 新增快捷入口卡片：在"我的信息"卡片下方添加"快捷入口"卡片
+    - 添加两个按钮：`查看已确认课程`（主按钮）和 `查看训练报告`（次按钮）
+    - 按钮绑定事件：`bindtap="goConfirmed"` 和 `bindtap="goReports"`
+  - **pages/profile/index.wxss**：
+    - 优化卡片间距：为 `.card` 添加 `margin-bottom: 24rpx`，确保卡片之间有间距
+    - 新增 `.actions-card` 样式：快捷入口卡片样式，`margin-top: 24rpx`
+    - 新增 `.actions` 样式：按钮容器样式，使用 `flex-direction: column` 垂直排列，`gap: 16rpx` 设置间距
+    - 新增 `.btn-primary` 样式：主按钮样式，深色背景（`#111827`）、白色文字、圆角（`999rpx`）
+    - 新增 `.btn-secondary` 样式：次按钮样式，浅色背景（`#f3f4f6`）、深色文字、圆角（`999rpx`）
+- **影响范围**：
+  - 用户端个人信息页：新增快捷入口功能，用户可以快速访问已确认课程和训练报告
+  - 用户体验：提升信息页面的导航便利性，减少页面跳转层级
+- **回滚方案**：
+  - 恢复 `index.js.v1.0`、删除新增的两个跳转方法
+  - 恢复 `index.wxml` 到上一个版本（移除快捷入口卡片）
+  - 恢复 `index.wxss` 到上一个版本（移除按钮样式）
+- **备份文件**：
+  - `pages/profile/index.js.v1.0`（已备份 v1.0 版本）
+- **测试点**：
+  - 验证跳转功能：点击"查看已确认课程"按钮能正确跳转到已确认课程列表页
+  - 验证跳转功能：点击"查看训练报告"按钮能正确跳转到训练报告列表页
+  - 验证样式显示：快捷入口卡片样式正确，按钮排列和间距符合设计
+  - 验证按钮样式：主按钮和次按钮的颜色、圆角、字体大小符合设计规范
+
+### 2025-11-16 20:57:59 CST — P1：用户端报告体验补完
+- **feat(cloud)**: 云函数 `user_get_report` 增加 session 信息拼接
+- **feat(ui)**: 用户端报告详情页显示课程标题和时间
+- **变更内容**：
+  - **cloudfunctions/user_get_report/index.js**（admin 端）：
+    - 新增 session 信息查询：当报告包含 sessionId 时，自动查询 sessions 表获取课程信息
+    - 返回结构变更：从 `{ report }` 改为 `{ report, session }`
+    - session 信息包含：`_id`、`title`、`startAt`、`endAt`
+    - 容错处理：支持 tenantId 校验，如果两边都有 tenantId 则要求一致；否则仅作为显示使用
+    - 错误处理：session 查询失败时返回 null，不影响报告返回
+  - **pages/reports/detail/index.js**：
+    - 新增 `session` 和 `sessionLabel` 数据字段
+    - 新增 `makeSessionLabel()` 方法：将 session 信息格式化为人类可读的文案（如"课程：深蹲训练 · 14:00-15:00"）
+    - 优化 `fetch()` 方法：接收云函数返回的 session 信息，并生成 sessionLabel
+    - 时间格式化：支持将 ISO 格式时间转换为 "HH:mm" 格式显示
+    - 错误处理：优化错误提示文案为"请求失败，请稍后重试"
+  - **pages/reports/detail/index.wxml**：
+    - 优化课程信息显示：使用 `sessionLabel` 显示格式化的课程信息，无 session 时显示 sessionId 或"—"
+- **影响范围**：
+  - 用户端报告详情页：现在可以显示课程标题和时间，信息更完整
+  - 云函数返回结构：从 `{ report }` 改为 `{ report, session }`，前端需要适配
+- **回滚方案**：
+  - 云函数：恢复 `index.js.v1.1` 文件（admin 端），重新部署云函数
+  - 前端：恢复 `index.js.v1.0` 和 `index.wxml` 到上一个版本
+- **备份文件**：
+  - `reports/detail/index.js.v1.0`（已备份 v1.0 版本）
+- **测试点**：
+  - 验证云函数返回：包含 `report` 和 `session` 字段
+  - 验证 session 信息：能正确查询并返回课程标题和时间
+  - 验证时间格式化：ISO 格式时间能正确转换为 "HH:mm" 格式
+  - 验证 sessionLabel：能正确生成"课程：标题 · 开始时间-结束时间"格式
+  - 验证容错处理：session 不存在或查询失败时不影响报告显示
+  - 验证 tenantId 校验：不同租户的课程不会显示给其他租户用户
 
 ### 2025-11-15 17:41:59 CST — 新增"我的信息"页面
 - **feat(ui)**: 新增 user 端"我的信息"页面，支持查看个人信息和余额

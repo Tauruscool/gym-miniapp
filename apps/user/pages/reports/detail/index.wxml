@@ -1,7 +1,9 @@
 <block wx:if="{{report}}">
   <view class="section">
     <view class="section-title">报告详情</view>
-    <view class="helper">课程：{{report.sessionId}}</view>
+    <view class="helper">
+      {{sessionLabel || ('课程：' + (report.sessionId || '—'))}}
+    </view>
     <view class="helper">RPE：{{report.RPE}} ｜ 备注：{{report.comment || '无'}}</view>
   </view>
   <view class="section">

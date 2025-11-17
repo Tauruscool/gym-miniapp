@@ -34,8 +34,12 @@ Page({
       });
       this.setData({ list: result?.list || [] });
     } catch (e) {
-      console.error('fetch reports error', e);
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      const { q, createdFrom, createdTo } = this.data
+      console.error('user_list_reports error', {
+        data: { q, createdFrom, createdTo },
+        err: e
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
     } finally {
       this.setData({ loading: false });
     }

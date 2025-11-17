@@ -391,89 +391,40 @@ Page({
 
     const { chosenUserId, sessionId, selected, deduct, comment, RPE } = this.data;
 
-    if (!chosenUserId)    return wx.showToast({ icon: 'none', title: '请先选择学员' });
+    if (!chosenUserId)   return wx.showToast({ icon:'none', title:'请先选择学员' });
 
-    if (!sessionId)       return wx.showToast({ icon: 'none', title: '请先选择课程' });
+    if (!sessionId)      return wx.showToast({ icon:'none', title:'请先选择课程' });
 
-    if (!selected.length) return wx.showToast({ icon: 'none', title: '请先添加动作' });
+    if (!selected.length)return wx.showToast({ icon:'none', title:'请先添加动作' });
 
-    const amount = Number(deduct || 0);
+    const report = { coachId:'coach_001', items:selected, RPE, comment };
 
-    wx.showLoading({ title: '提交中' });
+    wx.showLoading({ title:'提交中' });
 
     wx.cloud.callFunction({
 
-      name: 'report_and_deduct',
+      name:'report_and_deduct',
 
-      data: {
+      data:{ sessionId, report, deductAmount: Number(deduct||0) }
 
-        sessionId,
-
-        userId: chosenUserId,
-
-        items: selected,       // 这里直接传选中的动作数组，结构与云函数的 items 一致
-
-        RPE,
-
-        comment,
-
-        amount
-
-      }
-
-    }).then(res => {
+    }).then(()=>{
 
       wx.hideLoading();
 
-      wx.showToast({ title: '已提交' });
+      wx.showToast({ title:'已提交' });
 
-      // 保留学员和课程，只清空本次报告相关字段（沿用你现在的逻辑）
+      this.setData({ selected: [], comment:'', sessionId:'' });
 
-      this.setData({
-
-        selected: [],
-
-        comment: '',
-
-        sessionId: ''   // 如果你希望保留 sessionId 方便连续填，可以考虑不清空
-
-      });
-
-    }).catch(err => {
+    }).catch(err=>{
 
       wx.hideLoading();
 
-      // 统一的错误日志结构 + 友好 toast
-
+      const { chosenUserId, sessionId, selected, deduct, comment, RPE } = this.data
       console.error('report_and_deduct error', {
-
-        data: {
-
-          sessionId,
-
-          userId: chosenUserId,
-
-          amount: deduct,
-
-          itemsCount: selected?.length || 0,
-
-          RPE,
-
-          comment
-
-        },
-
+        data: { sessionId, deductAmount: deduct, report: { items: selected?.length || 0, RPE, comment } },
         err
-
-      });
-
-      wx.showToast({
-
-        title: '请求失败，请稍后重试',
-
-        icon: 'none'
-
-      });
+      })
+      wx.showToast({ title: '请求失败，请稍后重试', icon: 'none' })
 
     });
 

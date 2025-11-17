@@ -10,6 +10,7 @@
   border-radius: 24rpx;
   padding: 32rpx;
   box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.04);
+  margin-bottom: 24rpx;
 }
 
 .card-title {
@@ -31,6 +32,36 @@
 
 .value {
   font-size: 26rpx;
+  color: #111827;
+}
+
+/* 新增 */
+.actions-card {
+  margin-top: 24rpx;
+}
+
+.actions {
+  margin-top: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.btn-primary,
+.btn-secondary {
+  border-radius: 999rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  border: none;
+}
+
+.btn-primary {
+  background: #111827;
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
   color: #111827;
 }
 
